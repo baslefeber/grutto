@@ -41,8 +41,15 @@ Order of work:
 If the physio says they should not be running, there is no week to publish.
 Skip steps 5 to 7 and write the return-to-run steps to the runner instead.
 
-Then write to the runner. Lead with the decision, not with analysis. If you are
-telling them not to run, say that in the first sentence. If a plan was rejected
+Then write to the runner. Lead with the decision, not with analysis.
+
+If a week was approved, the first sentence says what they are running. Do not
+open with what they are not getting. "Three easy runs this week, 7 km in total"
+is the decision. "You're not getting a training week" is not, and it directly
+contradicts the week you just approved. A small week is still a week.
+
+If the answer really is no running at all, say that in the first sentence
+instead. If a plan was rejected
 on the way, say so and say what changed. If they asked for something you are
 not giving them, acknowledge that directly.
 

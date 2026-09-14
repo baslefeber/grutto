@@ -107,13 +107,22 @@ Record any race decision with remember_advice so you do not contradict
 yourself next time. Never repeat a note back to the runner as a count of how
 often you have said it.
 
-Then check their current state.
+Then check their current state. Note that pain has a severity, not just a
+presence. A two out of ten that only appears late in a run, does not hurt when
+walking and is settling is not the same problem as a six that wakes you up, and
+it does not deserve the same answer. Say which of the two you are looking at.
 
-If pain is reported but you do not yet know how bad it is, ASK before deciding
-anything. This holds even when the journal already contains a verdict from an
-earlier conversation. An old answer is not a reason to skip the question: it is
-the reason to ask again, because the whole point of asking is that the answer
-changes. Call get_pain_questions and put those questions to the runner. Do not
+When pain is reported, call get_pain_questions FIRST and do what it says.
+
+If it comes back with need_to_ask false, the runner has already told you how
+bad it is. Use those answers and get on with it. Do not ask again. Asking
+someone the same four questions they just answered is the fastest way to make
+them stop talking to you.
+
+If it comes back with need_to_ask true, put exactly those questions to the
+runner and decide nothing until they answer. An old verdict sitting in the
+journal is not a substitute for asking, because the whole point of asking is
+that the answer changes. Call get_pain_questions and put those questions to the runner. Do not
 assume the worst and do not assume the best. A two out of ten that only shows
 up late in a run and a six that hurts when you walk are different problems, and
 the honest answer to "should I race" is often "tell me these four things
@@ -294,12 +303,31 @@ def safety_officer(proposed_week: str) -> str:
     approved = check["verdict"] == "approve"
     state = _json.loads(get_athlete_state())
 
-    if state.get("in_pain"):
+    # How bad it is decides this, not merely that something was mentioned.
+    # A two out of ten that is settling does not block a week. A six that hurts
+    # when you walk does.
+    import athlete as _athlete
+    hurt = _athlete.pain_severity(_athlete.state())
+
+    if hurt["level"] == "stop":
         approved = False
-        reason = ("Something is hurting and has not been looked at, so no running "
-                  "week passes until it has been.")
-    elif approved:
-        reason = check["reason"]
+        reason = ("This needs looking at before any running week: "
+                  + ", ".join(hurt["concerns"]) + ".")
+    elif hurt["level"] == "unknown" and (state.get("days_off") or 0) >= 7:
+        # nobody has asked how bad it is and they have been off a while, so be
+        # careful rather than absolute: allow a small week, not a normal one
+        cap = min(check.get("ceiling_km", 0.0), 8.0)
+        approved = km <= cap
+        reason = (check["reason"] if approved else
+                  f"Until someone has asked how bad the pain actually is, keep the "
+                  f"first week back under about {cap:.0f} km.")
+        check["ceiling_km"] = cap
+    elif hurt["level"] == "careful":
+        cap = round(check.get("ceiling_km", 0.0) * 0.8, 1)
+        approved = approved and km <= cap
+        reason = (check["reason"] if approved else
+                  f"The pain is mild but real, so this week stays under {cap:.0f} km.")
+        check["ceiling_km"] = cap
     else:
         reason = check["reason"]
 

@@ -128,6 +128,23 @@ def plan_vs_actual(runs):
     return out
 
 
+def recall_pain_detail():
+    """The most recent answers about how bad the pain is.
+
+    A runner should not be asked the same four questions every time they open
+    the app. They answered once; that answer holds until they say otherwise.
+    """
+    d = _load()
+    for e in reversed(d["events"]):
+        if e["kind"] == "symptom_cleared":
+            return {}
+        if e["kind"] == "symptom_detail":
+            return {k: e[k] for k in
+                    ("pain_score", "pain_when_walking", "pain_worse_in_morning",
+                     "pain_direction") if e.get(k) is not None}
+    return {}
+
+
 def summary(runs=None):
     d = _load()
     return {

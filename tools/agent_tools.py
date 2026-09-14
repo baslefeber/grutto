@@ -310,7 +310,11 @@ def remember_pain_detail(score_out_of_ten: int, hurts_when_walking: bool,
     journal.add_event("symptom_detail",
                       f"{score_out_of_ten}/10, walking hurts: {hurts_when_walking}, "
                       f"worse in the morning: {worse_in_morning}, getting {direction}",
-                      area=st.pain_area)
+                      area=st.pain_area,
+                      pain_score=score_out_of_ten,
+                      pain_when_walking=hurts_when_walking,
+                      pain_worse_in_morning=worse_in_morning,
+                      pain_direction=direction)
     return json.dumps(athlete.pain_severity(athlete.state()), indent=2)
 
 

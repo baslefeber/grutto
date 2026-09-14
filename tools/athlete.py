@@ -133,8 +133,16 @@ def pain_questions(st):
     if not st.pain_direction:
         missing.append("Over the last few days, is it getting better, worse, or "
                        "staying the same?")
+    already = {k: v for k, v in {
+        "score_out_of_ten": st.pain_score,
+        "hurts_when_walking": st.pain_when_walking,
+        "worse_in_morning": st.pain_worse_in_morning,
+        "direction": st.pain_direction,
+    }.items() if v not in (None, "")}
+
     return {
         "need_to_ask": bool(missing),
+        "already_answered": already,
         "questions": missing,
         "why": ("Pain that stops you walking, or that is worse on the first steps "
                 "of the morning, or that is getting worse, is a different problem "

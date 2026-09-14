@@ -25,6 +25,7 @@ from flask import Flask, jsonify, request, send_from_directory
 
 import agent_tools
 import athlete
+import journal
 import recorder
 from gate import gate
 from garmin_source import get_source
@@ -154,8 +155,13 @@ def api_plan():
     from specialists import clear_specialists
 
     with _lock:
+        # Anything the runner already told the physio about how bad it is
+        # lives in the journal. Without this, every request resets them to
+        # "in pain, severity unknown" and the same questions get asked again.
+        known = journal.recall_pain_detail()
         athlete.set_state(**{**DEFAULT_STATE, "pain": pain,
-                             "days_off": DEFAULT_STATE["days_off"] if pain else 0})
+                             "days_off": DEFAULT_STATE["days_off"] if pain else 0,
+                             **known})
         recorder.reset()
         gate().reset()
         agent_tools.reset_source()
