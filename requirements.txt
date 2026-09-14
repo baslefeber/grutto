@@ -4,3 +4,4 @@ garminconnect
 pydantic
 python-dotenv
 flask
+anthropic

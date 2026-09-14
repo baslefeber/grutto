@@ -659,9 +659,9 @@ function renderToday() {
               <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><span class="badge stop lg"><span class="dot"></span>${esc(s.race.call)}</span><span class="t-meta">${s.race.weeks_to_race} weeks out</span></div>
               <div class="chart" id="race-bar"></div>
               <div class="t-cap" style="margin:18px 0 6px">What is in the way</div>
-              <div class="kv">${s.race.problems.map(p => `<div style="justify-content:flex-start;gap:10px"><span class="dot stop" style="margin-top:6px"></span><span class="dim">${esc(p)}</span></div>`).join('')}</div>
+              <div class="kv">${(s.race.problems||[]).map(p => `<div style="justify-content:flex-start;gap:10px"><span class="dot stop" style="margin-top:6px"></span><span class="dim">${esc(p)}</span></div>`).join('')}</div>
               <div class="t-cap" style="margin:16px 0 6px">Instead</div>
-              <div class="kv">${s.race.alternatives.map(p => `<div style="justify-content:flex-start;gap:10px"><span class="dot ok" style="margin-top:6px"></span><span class="dim">${esc(p)}</span></div>`).join('')}</div>
+              <div class="kv">${(s.race.alternatives||[]).map(p => `<div style="justify-content:flex-start;gap:10px"><span class="dot ok" style="margin-top:6px"></span><span class="dim">${esc(p)}</span></div>`).join('')}</div>
             </div>
           </div></div>
           <div class="c5 stack">

@@ -128,6 +128,19 @@ Zero sessions. The gate was never even asked, because no week was proposed.
 
 Recorded real data by default. No Garmin account needed.
 
+You do need somewhere to run Claude. Either AWS credentials with Bedrock access
+in a region that serves Claude, which is the default:
+
+    aws configure          # and enable Anthropic models in the Bedrock console
+
+or an Anthropic key instead, which needs no AWS account at all:
+
+    GRUTTO_MODEL_PROVIDER=anthropic
+    ANTHROPIC_API_KEY=sk-ant-...
+
+Without one of those the agents cannot think and you will get a credentials
+error on the first question.
+
     python main.py "Should I race in two weeks?"
     python main.py --as-of 2026-08-24 "Plan my week, I want a big one"
     python main.py --pain "" "Plan my week"          # as if nothing hurt

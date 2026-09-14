@@ -187,7 +187,10 @@ function render(){
     "What should I fix first?",
   ].map(c=>`<button class="chip">${c}</button>`).join("");
   document.querySelectorAll(".chip").forEach(c =>
-    c.onclick = () => { $("#q").value = c.textContent; $("#askform").requestSubmit(); });
+    c.onclick = () => {
+      if ($("#send").disabled) return;
+      $("#q").value = c.textContent; $("#askform").requestSubmit();
+    });
 
   const ws = S.weeks.filter(w=>w.km !== null);
   const max = Math.max(...ws.map(w=>w.km), 1);
@@ -206,7 +209,11 @@ function render(){
     double the four weeks before them. Your watch called all three of them optimal.`;
 }
 
-fetch("/api/state").then(r=>r.json()).then(d=>{S=d; render();}).catch(render);
+fetch("/api/state").then(r=>r.json()).then(d=>{S=d; render();})
+  .catch(()=>{ render(); const t=document.querySelector(".tag");
+    t.insertAdjacentHTML("beforeend",
+      ' <span style="color:var(--t3);text-transform:none;letter-spacing:0;'
+      + 'font-weight:400"> recorded data, server not running</span>'); });
 
 // one session id for this browser, so follow-up questions continue the thread
 const SESSION = localStorage.getItem("grutto-session")

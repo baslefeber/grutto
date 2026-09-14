@@ -25,6 +25,22 @@ from agent_tools import (check_proposed_week, get_athlete_state, get_form_trend,
                          remember_symptom, remember_symptom_cleared)
 import journal
 from gate import Verdict, gate
+from pydantic import BaseModel, Field
+
+
+class ProposedWeek(BaseModel):
+    """Just the number. The model reads it, it does not judge it."""
+    total_km: float = Field(description="Total kilometres of running in the proposed week. "
+                                        "0 if the week contains no running.")
+
+
+def _km_from_text(text):
+    """Fallback if the model cannot give us a number: add up what looks like one."""
+    import re
+    m = re.findall(r"[Tt]otal[^0-9]{0,12}([0-9]+(?:\.[0-9]+)?)", text)
+    if m:
+        return float(m[-1])
+    return sum(float(x) for x in re.findall(r"([0-9]+(?:\.[0-9]+)?)\s*km", text)) or 0.0
 from model import build_model
 from recorder import record
 from voice import ANALYST_RULES, COACH_VOICE, HONESTY
@@ -256,19 +272,45 @@ def plan_writer(brief: str) -> str:
 def safety_officer(proposed_week: str) -> str:
     """Submit a proposed week for the safety check. It can and does reject.
 
-    The verdict is recorded in code. A week this rejects cannot be published,
-    whatever anyone says afterwards.
+    The decision is arithmetic, not judgement. The model is used only to read
+    the weekly total out of the proposal and to write the reason in plain
+    words. Whether the week passes is decided by ramp_check in Python, so no
+    wording in the proposal can talk it round.
 
     Args:
         proposed_week: the proposal, verbatim, including the weekly total.
     """
-    verdict = _safety_officer.structured_output(Verdict, proposed_week)
+    import json as _json
+
+    # the model reads the total out of the text. that is all it decides.
+    try:
+        read = _safety_officer.structured_output(ProposedWeek, proposed_week)
+        km = float(read.total_km)
+    except Exception:
+        km = _km_from_text(proposed_week)
+
+    # the verdict itself is code
+    check = _json.loads(check_proposed_week(km))
+    approved = check["verdict"] == "approve"
+    state = _json.loads(get_athlete_state())
+
+    if state.get("in_pain"):
+        approved = False
+        reason = ("Something is hurting and has not been looked at, so no running "
+                  "week passes until it has been.")
+    elif approved:
+        reason = check["reason"]
+    else:
+        reason = check["reason"]
+
+    verdict = Verdict(approved=approved, reason=reason, proposed_week_km=km,
+                      safe_ceiling_km=check.get("ceiling_km", 0.0))
     gate().record(proposed_week, verdict)
-    journal.add_plan(_this_monday(), [], verdict.proposed_week_km, verdict.approved,
-                     verdict.safe_ceiling_km,
-                     [] if verdict.approved else [verdict.reason])
-    answer = (f"VERDICT: {'APPROVED' if verdict.approved else 'REJECTED'}\n"
-              f"{verdict.reason}\n"
+    journal.add_plan(_this_monday(), [], km, approved, verdict.safe_ceiling_km,
+                     [] if approved else [reason])
+
+    answer = (f"VERDICT: {'APPROVED' if approved else 'REJECTED'}\n"
+              f"{reason}\n"
               f"Most this runner should do this week: {verdict.safe_ceiling_km} km")
     record("safety_officer", proposed_week, answer)
     return answer

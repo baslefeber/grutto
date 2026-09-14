@@ -9,6 +9,7 @@ two, because six agents each think in turn.
 import json
 import os
 import sys
+import threading
 from datetime import date, datetime
 from pathlib import Path
 
@@ -31,6 +32,11 @@ from load import (acwr_series, chronic_km, days_since_last_run, long_run_share,
                   longest_run_jumps, ramp_check, weekly_volume)
 
 app = Flask(__name__, static_folder=None)
+
+# One runner, one set of module globals. Two requests at once used to wipe each
+# other's transcript and approval, and the coach would then say a week was on
+# the watch when nothing had been sent. Serialise instead.
+_lock = threading.Lock()
 FEEDBACK = ROOT / "feedback.jsonl"
 APP_DIR = ROOT / "app"
 
@@ -115,16 +121,22 @@ def _state_payload():
 
 @app.get("/api/state")
 def api_state():
-    return jsonify(_state_payload())
+    with _lock:
+        return jsonify(_state_payload())
 
 
 @app.post("/api/plan")
 def api_plan():
-    body = request.get_json() or {}
-    as_of = (body.get("as_of") or "").strip()
-    pain = body.get("pain", DEFAULT_STATE["pain"])
-    question = (body.get("question") or "").strip() or "Plan my coming week."
-    session_id = (body.get("session_id") or "").strip() or None
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        return jsonify({"error": "expected a JSON object"}), 400
+    as_of = str(body.get("as_of") or "").strip()
+    pain = str(body.get("pain", DEFAULT_STATE["pain"]))
+    question = str(body.get("question") or "").strip() or "Plan my coming week."
+    session_id = str(body.get("session_id") or "").strip() or None
+
+    if not isinstance(body, dict):
+        return jsonify({"error": "expected a JSON object"}), 400
 
     if as_of:
         # a bad date used to sail through and quietly return every run, which
@@ -139,33 +151,42 @@ def api_plan():
         os.environ.pop("GRUTTO_AS_OF", None)
         agent_tools.TODAY = TODAY
 
-    athlete.set_state(**{**DEFAULT_STATE, "pain": pain,
-                         "days_off": DEFAULT_STATE["days_off"] if pain else 0})
-    recorder.reset()
-    gate().reset()
-    agent_tools.reset_source()
-
     from specialists import clear_specialists
-    clear_specialists()
 
-    try:
-        from coach import build_coach
-        final = str(build_coach(session_id)(question))
-    except Exception as e:
-        return jsonify({"error": f"{type(e).__name__}: {e}"}), 500
+    with _lock:
+        athlete.set_state(**{**DEFAULT_STATE, "pain": pain,
+                             "days_off": DEFAULT_STATE["days_off"] if pain else 0})
+        recorder.reset()
+        gate().reset()
+        agent_tools.reset_source()
+        clear_specialists()
 
-    return jsonify({
-        "run_id": datetime.now().strftime("%Y%m%d-%H%M%S"),
-        "transcript": recorder.transcript(),
-        "final": final,
-        "gate": gate().summary(),
-        "session_id": session_id,
-    })
+        try:
+            from coach import build_coach
+            final = str(build_coach(session_id)(question))
+        except Exception as e:
+            return jsonify({"error": f"{type(e).__name__}: {e}"}), 500
+        finally:
+            # a rewind must not survive the request that asked for it
+            os.environ.pop("GRUTTO_AS_OF", None)
+            agent_tools.TODAY = TODAY
+            agent_tools.reset_source()
+
+        return jsonify({
+            "run_id": datetime.now().strftime("%Y%m%d-%H%M%S"),
+            "transcript": recorder.transcript(),
+            "final": final,
+            "gate": gate().summary(),
+            "session_id": session_id,
+        })
 
 
 @app.post("/api/feedback")
 def api_feedback():
-    entry = request.get_json() or {}
+    entry = request.get_json(silent=True)
+    if not isinstance(entry, dict):
+        return jsonify({"error": "expected a JSON object"}), 400
+    entry = {k: str(v)[:2000] for k, v in entry.items()}
     entry["at"] = datetime.now().isoformat(timespec="seconds")
     with FEEDBACK.open("a") as f:
         f.write(json.dumps(entry) + "\n")
