@@ -1,0 +1,388 @@
+{
+  "_source": "Real Garmin data, Bas Lefeber, pulled 2026-09-14. No credentials used.",
+  "_note": "Running history begins 2026-07-05. Rest period from 2026-09-05 (foot pain).",
+  "runs": [
+    {
+      "date": "2026-07-05",
+      "name": "Benchmark Run",
+      "distance_m": 1581.75,
+      "duration_s": 560,
+      "avg_hr": 121,
+      "form": null,
+      "max_hr": 135
+    },
+    {
+      "date": "2026-07-07",
+      "name": "Easy Run",
+      "distance_m": 4971.94,
+      "duration_s": 1648,
+      "avg_hr": 160,
+      "form": null,
+      "max_hr": 174
+    },
+    {
+      "date": "2026-07-08",
+      "name": "Easy Run",
+      "distance_m": 7457.93,
+      "duration_s": 2719,
+      "avg_hr": 156,
+      "form": null,
+      "max_hr": 168
+    },
+    {
+      "date": "2026-07-11",
+      "name": "Boxmeer Running",
+      "distance_m": 6083.41,
+      "duration_s": 2009,
+      "avg_hr": 168,
+      "form": null,
+      "max_hr": 177
+    },
+    {
+      "date": "2026-07-15",
+      "name": "Easy Run",
+      "distance_m": 5848.96,
+      "duration_s": 2042,
+      "avg_hr": 158,
+      "form": null,
+      "max_hr": 171
+    },
+    {
+      "date": "2026-07-18",
+      "name": "Easy Run",
+      "distance_m": 4658.91,
+      "duration_s": 1634,
+      "avg_hr": 151,
+      "form": null,
+      "max_hr": 164
+    },
+    {
+      "date": "2026-07-21",
+      "name": "Easy Run",
+      "distance_m": 4543.36,
+      "duration_s": 1590,
+      "avg_hr": 150,
+      "form": null,
+      "max_hr": 166
+    },
+    {
+      "date": "2026-07-22",
+      "name": "Easy Run",
+      "distance_m": 9548.67,
+      "duration_s": 3317,
+      "avg_hr": 156,
+      "form": {
+        "gct_ms": 296.1,
+        "cadence": 155.13,
+        "vertical_oscillation_cm": 9.78,
+        "vertical_ratio": 8.8,
+        "stride_length_cm": 111.18,
+        "avg_speed_mps": 2.879,
+        "avg_hr": 156
+      },
+      "max_hr": 168
+    },
+    {
+      "date": "2026-07-24",
+      "name": "Easy Run",
+      "distance_m": 3920.56,
+      "duration_s": 1514,
+      "avg_hr": 142,
+      "form": null,
+      "max_hr": 161
+    },
+    {
+      "date": "2026-07-26",
+      "name": "Easy Run",
+      "distance_m": 5323.27,
+      "duration_s": 1865,
+      "avg_hr": 146,
+      "form": null,
+      "max_hr": 166
+    },
+    {
+      "date": "2026-07-31",
+      "name": "Long Easy Run",
+      "distance_m": 15868.81,
+      "duration_s": 5784,
+      "avg_hr": 155,
+      "form": {
+        "gct_ms": 301.3,
+        "cadence": 155.2,
+        "vertical_oscillation_cm": 9.5,
+        "vertical_ratio": 9.06,
+        "stride_length_cm": 104.9,
+        "avg_speed_mps": 2.719,
+        "avg_hr": 157
+      },
+      "max_hr": 168
+    },
+    {
+      "date": "2026-08-05",
+      "name": "Long Easy Run",
+      "distance_m": 3896.97,
+      "duration_s": 1338,
+      "avg_hr": 152,
+      "form": null,
+      "max_hr": 175
+    },
+    {
+      "date": "2026-08-10",
+      "name": "Goal Pace Run",
+      "distance_m": 7441.14,
+      "duration_s": 2371,
+      "avg_hr": 157,
+      "form": null,
+      "max_hr": 174
+    },
+    {
+      "date": "2026-08-13",
+      "name": "Long Easy Run",
+      "distance_m": 12358.0,
+      "duration_s": 4371,
+      "avg_hr": 160,
+      "form": {
+        "gct_ms": 295.2,
+        "cadence": 157.13,
+        "vertical_oscillation_cm": 9.55,
+        "vertical_ratio": 8.86,
+        "stride_length_cm": 107.73,
+        "avg_speed_mps": 2.828,
+        "avg_hr": 160
+      },
+      "max_hr": 171
+    },
+    {
+      "date": "2026-08-16",
+      "name": "Speed Repeats",
+      "distance_m": 9700.55,
+      "duration_s": 3021,
+      "avg_hr": 164,
+      "form": null,
+      "max_hr": 188
+    },
+    {
+      "date": "2026-08-18",
+      "name": "Easy Run",
+      "distance_m": 4585.5,
+      "duration_s": 1633,
+      "avg_hr": 150,
+      "form": null,
+      "max_hr": 164
+    },
+    {
+      "date": "2026-08-20",
+      "name": "Easy Run",
+      "distance_m": 5146.49,
+      "duration_s": 1882,
+      "avg_hr": 154,
+      "form": null,
+      "max_hr": 167
+    },
+    {
+      "date": "2026-08-24",
+      "name": "Progression Run",
+      "distance_m": 6594.07,
+      "duration_s": 2152,
+      "avg_hr": 165,
+      "form": null,
+      "max_hr": 183
+    },
+    {
+      "date": "2026-08-27",
+      "name": "Long Easy Run",
+      "distance_m": 15235.78,
+      "duration_s": 5350,
+      "avg_hr": 156,
+      "form": {
+        "gct_ms": 290.6,
+        "cadence": 160.0,
+        "vertical_oscillation_cm": 9.41,
+        "vertical_ratio": 8.8,
+        "stride_length_cm": 106.89,
+        "avg_speed_mps": 2.848,
+        "avg_hr": 156
+      },
+      "max_hr": 167
+    },
+    {
+      "date": "2026-08-30",
+      "name": "Goal Pace Run",
+      "distance_m": 10215.12,
+      "duration_s": 3143,
+      "avg_hr": 160,
+      "form": null,
+      "max_hr": 174
+    },
+    {
+      "date": "2026-09-04",
+      "name": "Easy Run",
+      "distance_m": 9111.06,
+      "duration_s": 3242,
+      "avg_hr": 152,
+      "form": {
+        "gct_ms": 292.4,
+        "cadence": 158.92,
+        "vertical_oscillation_cm": 9.41,
+        "vertical_ratio": 8.86,
+        "stride_length_cm": 106.35,
+        "avg_speed_mps": 2.816,
+        "avg_hr": 153
+      },
+      "max_hr": 168
+    }
+  ],
+  "laps": {
+    "2026-08-27": [
+      {
+        "lap": 1,
+        "dist_m": 789.97,
+        "speed_mps": 2.633,
+        "hr": 132,
+        "cadence": 149.42,
+        "power": 294,
+        "type": "WARMUP"
+      },
+      {
+        "lap": 2,
+        "dist_m": 1000.0,
+        "speed_mps": 2.755,
+        "hr": 146,
+        "cadence": 156.97,
+        "power": 302,
+        "type": "ACTIVE"
+      },
+      {
+        "lap": 3,
+        "dist_m": 1000.0,
+        "speed_mps": 2.832,
+        "hr": 152,
+        "cadence": 157.53,
+        "power": 314,
+        "type": "ACTIVE"
+      },
+      {
+        "lap": 4,
+        "dist_m": 1000.0,
+        "speed_mps": 2.88,
+        "hr": 157,
+        "cadence": 160.2,
+        "power": 322,
+        "type": "ACTIVE"
+      },
+      {
+        "lap": 5,
+        "dist_m": 1000.0,
+        "speed_mps": 2.857,
+        "hr": 157,
+        "cadence": 162.13,
+        "power": 307,
+        "type": "ACTIVE"
+      },
+      {
+        "lap": 6,
+        "dist_m": 1000.0,
+        "speed_mps": 2.839,
+        "hr": 157,
+        "cadence": 160.83,
+        "power": 308,
+        "type": "ACTIVE"
+      },
+      {
+        "lap": 7,
+        "dist_m": 1000.0,
+        "speed_mps": 2.907,
+        "hr": 160,
+        "cadence": 160.11,
+        "power": 313,
+        "type": "ACTIVE"
+      },
+      {
+        "lap": 8,
+        "dist_m": 1000.0,
+        "speed_mps": 2.861,
+        "hr": 159,
+        "cadence": 160.22,
+        "power": 328,
+        "type": "ACTIVE"
+      },
+      {
+        "lap": 9,
+        "dist_m": 1000.0,
+        "speed_mps": 2.868,
+        "hr": 158,
+        "cadence": 162.13,
+        "power": 329,
+        "type": "ACTIVE"
+      },
+      {
+        "lap": 10,
+        "dist_m": 1000.0,
+        "speed_mps": 2.789,
+        "hr": 157,
+        "cadence": 160.11,
+        "power": 337,
+        "type": "ACTIVE"
+      },
+      {
+        "lap": 11,
+        "dist_m": 1000.0,
+        "speed_mps": 2.922,
+        "hr": 157,
+        "cadence": 160.42,
+        "power": 346,
+        "type": "ACTIVE"
+      },
+      {
+        "lap": 12,
+        "dist_m": 1000.0,
+        "speed_mps": 2.872,
+        "hr": 155,
+        "cadence": 160.34,
+        "power": 335,
+        "type": "ACTIVE"
+      },
+      {
+        "lap": 13,
+        "dist_m": 1000.0,
+        "speed_mps": 2.959,
+        "hr": 159,
+        "cadence": 161.25,
+        "power": 338,
+        "type": "ACTIVE"
+      },
+      {
+        "lap": 14,
+        "dist_m": 1000.0,
+        "speed_mps": 2.82,
+        "hr": 160,
+        "cadence": 161.16,
+        "power": 339,
+        "type": "ACTIVE"
+      },
+      {
+        "lap": 15,
+        "dist_m": 724.7,
+        "speed_mps": 2.89,
+        "hr": 160,
+        "cadence": 162.91,
+        "power": 342,
+        "type": "ACTIVE"
+      },
+      {
+        "lap": 16,
+        "dist_m": 721.11,
+        "speed_mps": 2.88,
+        "hr": 158,
+        "cadence": 160.88,
+        "power": 335,
+        "type": "ACTIVE"
+      }
+    ]
+  },
+  "_athlete": {
+    "age": 27,
+    "observed_max_hr": 188,
+    "note": "Rest from 2026-09-05, pain under both feet. Half marathon 2026-09-27."
+  }
+}

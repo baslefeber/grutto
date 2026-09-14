@@ -1,0 +1,17 @@
+# Internal, not for the public repo
+PITCH.md
+check.py
+history.py
+scratch/
+notes/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Secrets
+.env
+.garmin_session/
+FEEDBACK*
+feedback.jsonl
