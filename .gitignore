@@ -19,3 +19,6 @@ make_assets.py
 .sessions/
 journal.json
 SUBMISSION.md
+demo_setup.py
+VIDEO.md
+.watcher.json
