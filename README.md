@@ -10,46 +10,59 @@ way without breaking down is the whole idea.
 
 ## The problem, in one runner's data
 
-This is a real Garmin record. Mine. It shows what my watch told me during the
-weeks that ended with me unable to run.
+This is a real Garmin record. Mine.
 
+On 31 July I ran 15.9 km. My longest run before that was 9.6 km, nine days
+earlier. That one run was 100% of my training that week.
+
+Six weeks later I stopped running with pain under both feet and have not run
+since.
+
+Here is what my watch said on the way there, on the three weeks that most
+overshot what I had been doing:
+
+    22 Jul   load ratio 1.1   OPTIMAL   MAINTAINING
+    13 Aug   load ratio 1.4   OPTIMAL   PRODUCTIVE
     27 Aug   load ratio 1.2   OPTIMAL   PRODUCTIVE
-    30 Aug   load ratio 1.3   OPTIMAL   PRODUCTIVE
     04 Sep   load ratio 0.9   OPTIMAL   PRODUCTIVE
 
-Nine days after that last reading I stopped with pain under both feet and did
-not run for ten days.
-
 Garmin does work out an acute to chronic load ratio. It is not a missing
-feature. The problem is what goes into it: heart rate. I run everything at
-roughly the same effort, so my load looked steady while my distance doubled.
+feature, and it is built from heart rate and duration, so a longer run does
+register as more load. Two things keep it quiet anyway.
 
-Bone, tendon and fascia do not care how hard your heart is working. They care
-how many times your foot hits the ground.
+Its chronic window contains the acute week, so a spike sits inside its own
+average and gets flattened. And it has no concept of a single run being much
+further than anything you have done lately, which is the thing the
+running-specific research actually associates with injury.
 
-Ratio the distance instead and the same weeks look different:
+Here is what mine had been doing:
+
+    07 Jul     1.6 -> 5.0 km    +214%
+    08 Jul     5.0 -> 7.5 km     +50%
+    22 Jul     7.5 -> 9.6 km     +28%
+    31 Jul     9.6 -> 15.9 km    +66%   and it was the whole week
+
+And here is the weekly picture, each week against the four before it:
 
     06 Jul    18.5 km
     13 Jul    10.5 km
-    20 Jul    23.3 km    1.73  past the line
+    20 Jul    23.3 km    2.29
     27 Jul    15.9 km
     03 Aug     3.9 km
-    10 Aug    29.5 km    1.63  past the line
+    10 Aug    29.5 km    2.20
     17 Aug     9.7 km
-    24 Aug    32.0 km    1.70  past the line
+    24 Aug    32.0 km    2.17
     31 Aug     9.1 km
     07 Sep     0.0 km    stopped, both feet
 
-Three weeks over. The watch flagged none of them.
-
-There is a second thing it missed. One of those 21 runs was easy. Seventeen
-were moderate and three were hard. Which means no recovery days, because there
-were no easy days. Garmin has been saying this every week in its own words,
-AEROBIC LOW SHORTAGE, on a screen nobody opens, with nothing attached to it.
+There is a second thing the watch never surfaced as anything actionable. One of
+those 21 runs was in an easy heart rate zone. Garmin has been saying this every
+week in its own words, AEROBIC LOW SHORTAGE, on a screen with nothing attached
+to it.
 
 To be clear about what is being claimed: these things happened in this order.
-That is not proof one caused the other. Grutto says a week was risky. It never
-says a week caused an injury.
+That is not proof one caused the other. Grutto says a week or a run was risky.
+It never says it caused an injury.
 
 ## Why another dashboard would not have helped
 
@@ -164,10 +177,16 @@ be a lie in the one place it matters.
 Worth saying plainly, because a coach reading this will spot it anyway.
 
 The acute to chronic ratio comes from team sport research measured in session
-effort, not running distance. The evidence in running is thinner than its
-popularity suggests. It is used here as one input among several, never alone,
-and the chronic window excludes the current week so a spike is not hidden
-inside its own average.
+effort, not running distance. The running-specific evidence for weekly ratios
+is weak. Nielsen and colleagues, following several thousand runners, found
+weekly volume ratios did not predict injury, while a single run exceeding the
+longest run of the previous month did. That is why the single run jump leads
+here and the weekly ratio supports it rather than the other way round.
+
+The ratio is still computed, with the chronic window excluding the current
+week, because a spike hidden inside its own average is exactly how a watch
+misses one. It is one input among several and never the only reason for a
+refusal.
 
 Form data exists for 5 of 21 runs and kilometre splits for 1, so the form agent
 is deliberately sceptical and will say the sample is too small rather than

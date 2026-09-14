@@ -18,10 +18,11 @@ from strands import Agent, tool
 
 from agent_tools import (check_proposed_week, get_athlete_state, get_form_trend,
                          get_intensity_mix, get_journal, get_long_run_pattern,
-                         get_race_verdict, get_return_to_run_plan, get_run_history,
+                         get_fitness, get_pain_questions, get_race_verdict,
+                         get_return_to_run_plan, get_run_history,
                          get_weekly_volume, get_within_run_decay, get_workload_ratio,
-                         publish_workout, remember_advice, remember_symptom,
-                         remember_symptom_cleared)
+                         publish_workout, remember_advice, remember_pain_detail,
+                         remember_symptom, remember_symptom_cleared)
 import journal
 from gate import Verdict, gate
 from model import build_model
@@ -87,9 +88,25 @@ it was ever resolved. A symptom that was reported and never marked cleared is
 still open, however long ago it was. If they mention something new, write it
 down with remember_symptom. If they say something has settled, mark it cleared.
 Record any race decision with remember_advice so you do not contradict
-yourself next time.
+yourself next time. Never repeat a note back to the runner as a count of how
+often you have said it.
 
-Then check their current state. If anything hurts, or they have been off
+Then check their current state.
+
+If pain is reported but you do not yet know how bad it is, ASK before deciding
+anything. This holds even when the journal already contains a verdict from an
+earlier conversation. An old answer is not a reason to skip the question: it is
+the reason to ask again, because the whole point of asking is that the answer
+changes. Call get_pain_questions and put those questions to the runner. Do not
+assume the worst and do not assume the best. A two out of ten that only shows
+up late in a run and a six that hurts when you walk are different problems, and
+the honest answer to "should I race" is often "tell me these four things
+first". When they answer, record it with remember_pain_detail.
+
+Check get_fitness before any race verdict. Aerobic fitness and what the legs
+have actually covered are separate questions. A runner can be aerobically ready
+for a distance their legs have never run, and telling someone with a strong
+engine that they are unfit is simply wrong. Say which of the two is the limit. If anything hurts, or they have been off
 for a week or more, that decides everything: the answer is a return-to-run
 sequence, not a training week, and a physio should see it. Say that plainly.
 
@@ -99,8 +116,9 @@ now than at the start line.
 
 Be direct and short. Never diagnose or name a condition.
 {HONESTY}""",
-    tools=[get_journal, get_athlete_state, get_return_to_run_plan, get_race_verdict,
-           get_run_history, remember_symptom, remember_symptom_cleared, remember_advice],
+    tools=[get_journal, get_athlete_state, get_pain_questions, get_return_to_run_plan,
+           get_race_verdict, get_fitness, get_run_history, remember_symptom,
+           remember_pain_detail, remember_symptom_cleared, remember_advice],
 )
 
 _plan_writer = Agent(
@@ -163,6 +181,18 @@ watch. Never invent a connection problem and never tell anyone to resync.
 One line per session. Nothing else.""",
     tools=[publish_workout],
 )
+
+
+def clear_specialists():
+    """Wipe the specialists' conversation history.
+
+    They are long-lived objects, so without this each request inherits the last
+    one's messages and they start answering a question nobody asked. Only the
+    coach keeps a thread, because only the coach is talking to a person.
+    """
+    for a in (_load_analyst, _form_analyst, _physio, _plan_writer,
+              _safety_officer, _publisher):
+        a.messages = []
 
 
 def _wrap(agent, name):

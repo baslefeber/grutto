@@ -277,3 +277,54 @@ def remember_advice(what_you_told_them: str) -> str:
         what_you_told_them: one or two sentences.
     """
     return json.dumps(journal.add_event("advice", what_you_told_them), indent=2)
+
+
+@tool
+def get_pain_questions() -> str:
+    """What to ask someone who has reported pain, before deciding anything.
+
+    Call this whenever pain is reported and the detail is not already known.
+    A two out of ten that only appears late in a run and a six that hurts when
+    you walk are different problems with different answers. Guessing between
+    them is worse than asking.
+    """
+    return json.dumps(athlete.pain_questions(athlete.state()), indent=2)
+
+
+@tool
+def remember_pain_detail(score_out_of_ten: int, hurts_when_walking: bool,
+                         worse_in_morning: bool, direction: str) -> str:
+    """Write down how bad the pain actually is, once the runner has told you.
+
+    Args:
+        score_out_of_ten: 0 to 10 at its worst.
+        hurts_when_walking: true if normal walking hurts.
+        worse_in_morning: true if the first steps of the morning are worse.
+        direction: better, same or worse over the last few days.
+    """
+    st = athlete.state()
+    athlete.set_state(**{**st.__dict__, "pain_score": score_out_of_ten,
+                         "pain_when_walking": hurts_when_walking,
+                         "pain_worse_in_morning": worse_in_morning,
+                         "pain_direction": direction})
+    journal.add_event("symptom_detail",
+                      f"{score_out_of_ten}/10, walking hurts: {hurts_when_walking}, "
+                      f"worse in the morning: {worse_in_morning}, getting {direction}",
+                      area=st.pain_area)
+    return json.dumps(athlete.pain_severity(athlete.state()), indent=2)
+
+
+@tool
+def get_fitness() -> str:
+    """How good this runner's engine is, separately from what their legs have done.
+
+    Aerobic fitness and structural durability are different questions with
+    different answers. A runner can be aerobically ready for a distance their
+    legs have never covered, and telling them they are unfit would be wrong.
+    """
+    st = athlete.state()
+    return json.dumps({
+        "aerobic": athlete.aerobic_fitness(_runs(), st.vo2_max, st.age),
+        "longest_run_jumps": longest_run_jumps(_runs()),
+        "oversized_long_runs": [s for s in long_run_share(_runs(), TODAY) if s["too_big"]],
+    }, indent=2)

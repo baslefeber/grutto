@@ -85,10 +85,18 @@ def chronic_km(runs, today=None, weeks_back=4, exclude_current=True):
 
 
 def acwr_series(runs, today=None, weeks_back=4):
-    """Ratio of each week's distance to the four weeks before it."""
+    """Ratio of each week's distance to the four weeks before it.
+
+    The current week is left out. It has not finished, so its total is not a
+    total, and reporting a Monday morning as "very low" is noise.
+    """
     weeks = weekly_volume(runs, today)
+    this_monday = _monday(_date(today) if isinstance(today, str)
+                          else (today or date.today())).isoformat()
     out = []
     for i, w in enumerate(weeks):
+        if w["week_starting"] >= this_monday:
+            continue
         window = weeks[max(0, i - weeks_back):i]
         if len(window) < 2:
             continue

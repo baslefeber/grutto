@@ -384,5 +384,13 @@
     "age": 27,
     "observed_max_hr": 188,
     "note": "Rest from 2026-09-05, pain under both feet. Half marathon 2026-09-27."
+  },
+  "_fitness": {
+    "source": "Garmin, read 2026-09-14",
+    "vo2_max": 51.7,
+    "vo2_max_start_of_block": 48.5,
+    "vo2_max_trend": "rising",
+    "training_status": "PRODUCTIVE",
+    "note": "Garmin's own load ratio said OPTIMAL through every week that preceded the injury."
   }
 }

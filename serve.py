@@ -27,8 +27,8 @@ import athlete
 import recorder
 from gate import gate
 from garmin_source import get_source
-from load import (acwr_series, chronic_km, days_since_last_run, longest_run_jumps,
-                  ramp_check, weekly_volume)
+from load import (acwr_series, chronic_km, days_since_last_run, long_run_share,
+                  longest_run_jumps, ramp_check, weekly_volume)
 
 app = Flask(__name__, static_folder=None)
 FEEDBACK = ROOT / "feedback.jsonl"
@@ -39,13 +39,20 @@ TODAY = "2026-09-14"
 # Read from this account's Garmin on 2026-09-14. Garmin's own load ratio,
 # which it computes from heart rate, through the weeks before the injury.
 GARMIN_SAID = [
-    {"date": "2026-08-27", "load_ratio": 1.2, "status": "OPTIMAL", "feedback": "PRODUCTIVE"},
-    {"date": "2026-08-30", "load_ratio": 1.3, "status": "OPTIMAL", "feedback": "PRODUCTIVE"},
-    {"date": "2026-09-04", "load_ratio": 0.9, "status": "OPTIMAL", "feedback": "PRODUCTIVE"},
+    {"date": "2026-07-22", "week": "2026-07-20", "load_ratio": 1.1,
+     "status": "OPTIMAL", "feedback": "MAINTAINING"},
+    {"date": "2026-08-13", "week": "2026-08-10", "load_ratio": 1.4,
+     "status": "OPTIMAL", "feedback": "PRODUCTIVE"},
+    {"date": "2026-08-27", "week": "2026-08-24", "load_ratio": 1.2,
+     "status": "OPTIMAL", "feedback": "PRODUCTIVE"},
+    {"date": "2026-08-30", "week": "2026-08-24", "load_ratio": 1.3,
+     "status": "OPTIMAL", "feedback": "PRODUCTIVE"},
+    {"date": "2026-09-04", "week": "2026-08-31", "load_ratio": 0.9,
+     "status": "OPTIMAL", "feedback": "PRODUCTIVE"},
 ]
 
 DEFAULT_STATE = dict(
-    age=27, pain="pain under both feet", pain_area="both feet", days_off=10,
+    age=27, vo2_max=51.7, pain="pain under both feet", pain_area="both feet", days_off=10,
     goal_race="Half marathon", goal_race_date="2026-09-27")
 
 
@@ -97,6 +104,8 @@ def _state_payload():
         },
         "race": athlete.race_readiness(runs, 21.1, 2, st.in_pain, st.days_off or 0),
         "longest_jumps": longest_run_jumps(runs),
+        "long_run_share": [s for s in long_run_share(runs) if s["too_big"]],
+        "vo2_max": 51.7,
         "garmin": GARMIN_SAID,
         "runs": [{k: r.get(k) for k in
                   ("date", "name", "distance_m", "duration_s", "avg_hr", "max_hr")}
@@ -115,6 +124,7 @@ def api_plan():
     as_of = (body.get("as_of") or "").strip()
     pain = body.get("pain", DEFAULT_STATE["pain"])
     question = (body.get("question") or "").strip() or "Plan my coming week."
+    session_id = (body.get("session_id") or "").strip() or None
 
     if as_of:
         os.environ["GRUTTO_AS_OF"] = as_of
@@ -129,9 +139,12 @@ def api_plan():
     gate().reset()
     agent_tools.reset_source()
 
+    from specialists import clear_specialists
+    clear_specialists()
+
     try:
         from coach import build_coach
-        final = str(build_coach()(question))
+        final = str(build_coach(session_id)(question))
     except Exception as e:
         return jsonify({"error": f"{type(e).__name__}: {e}"}), 500
 
@@ -140,6 +153,7 @@ def api_plan():
         "transcript": recorder.transcript(),
         "final": final,
         "gate": gate().summary(),
+        "session_id": session_id,
     })
 
 
