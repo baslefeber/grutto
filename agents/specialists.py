@@ -17,13 +17,27 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
 from strands import Agent, tool
 
 from agent_tools import (check_proposed_week, get_athlete_state, get_form_trend,
-                         get_intensity_mix, get_long_run_pattern, get_race_verdict,
-                         get_return_to_run_plan, get_run_history, get_weekly_volume,
-                         get_within_run_decay, get_workload_ratio, publish_workout)
+                         get_intensity_mix, get_journal, get_long_run_pattern,
+                         get_race_verdict, get_return_to_run_plan, get_run_history,
+                         get_weekly_volume, get_within_run_decay, get_workload_ratio,
+                         publish_workout, remember_advice, remember_symptom,
+                         remember_symptom_cleared)
+import journal
 from gate import Verdict, gate
 from model import build_model
 from recorder import record
 from voice import ANALYST_RULES, COACH_VOICE, HONESTY
+
+
+def _this_monday():
+    from datetime import date, timedelta
+    import agent_tools
+    if agent_tools.TODAY:
+        y, m, d = (int(x) for x in agent_tools.TODAY.split("-"))
+        today = date(y, m, d)
+    else:
+        today = date.today()
+    return (today - timedelta(days=today.weekday())).isoformat()
 
 _load_analyst = Agent(
     model=build_model(), callback_handler=None,
@@ -68,7 +82,14 @@ _physio = Agent(
     system_prompt=f"""You are the injury and return-to-running voice. You are
 not a physiotherapist and you say so, but you are the one who insists on one.
 
-Always check the runner's state first. If anything hurts, or they have been off
+Read the journal first. It holds what this runner told you before and whether
+it was ever resolved. A symptom that was reported and never marked cleared is
+still open, however long ago it was. If they mention something new, write it
+down with remember_symptom. If they say something has settled, mark it cleared.
+Record any race decision with remember_advice so you do not contradict
+yourself next time.
+
+Then check their current state. If anything hurts, or they have been off
 for a week or more, that decides everything: the answer is a return-to-run
 sequence, not a training week, and a physio should see it. Say that plainly.
 
@@ -78,7 +99,8 @@ now than at the start line.
 
 Be direct and short. Never diagnose or name a condition.
 {HONESTY}""",
-    tools=[get_athlete_state, get_return_to_run_plan, get_race_verdict, get_run_history],
+    tools=[get_journal, get_athlete_state, get_return_to_run_plan, get_race_verdict,
+           get_run_history, remember_symptom, remember_symptom_cleared, remember_advice],
 )
 
 _plan_writer = Agent(
@@ -114,8 +136,8 @@ Call check_proposed_week with the week's total. A verdict of reject means you
 reject. Caution means you reject unless everything else is clean.
 
 Also reject when:
-- the runner is in pain or has been off a week or more and the plan contains
-  running at all
+- the journal has an open symptom, or the runner is in pain, or they have been
+  off a week or more, and the plan contains running at all
 - the week is mostly hard running for someone who has no easy days
 - the long run is more than about a third of the week
 - it repeats a pattern that already went wrong for this runner
@@ -123,7 +145,7 @@ Also reject when:
 Your answer is a verdict, not an essay. Do not re-tell their training history,
 do not comment on their form, do not give coaching advice. One or two sentences
 of reason with the numbers that drove it. That is all.""",
-    tools=[check_proposed_week, get_athlete_state, get_workload_ratio],
+    tools=[check_proposed_week, get_athlete_state, get_journal, get_workload_ratio],
 )
 
 _publisher = Agent(
@@ -212,6 +234,9 @@ def safety_officer(proposed_week: str) -> str:
     """
     verdict = _safety_officer.structured_output(Verdict, proposed_week)
     gate().record(proposed_week, verdict)
+    journal.add_plan(_this_monday(), [], verdict.proposed_week_km, verdict.approved,
+                     verdict.safe_ceiling_km,
+                     [] if verdict.approved else [verdict.reason])
     answer = (f"VERDICT: {'APPROVED' if verdict.approved else 'REJECTED'}\n"
               f"{verdict.reason}\n"
               f"Most this runner should do this week: {verdict.safe_ceiling_km} km")

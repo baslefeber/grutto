@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from strands import tool
 
 import athlete
+import journal
 from form import weekly_form_drift, within_run_decay
 from garmin_source import get_source
 from gate import gate
@@ -170,18 +171,35 @@ def get_return_to_run_plan() -> str:
 
 
 @tool
-def get_race_verdict(race_distance_km: float, weeks_to_race: int) -> str:
-    """Should this runner start this race? Compares the distance against the
-    furthest they have ever run, how long they have been out, and whether
-    anything currently hurts.
+def get_race_verdict(race_distance_km: float = 0.0) -> str:
+    """Should this runner start their race?
+
+    Works out how long is left from the race date on file, so never guess at
+    that. Compares the distance against the furthest they have ever run, how
+    long they have been out, and whether anything currently hurts.
 
     Args:
-        race_distance_km: the race distance.
-        weeks_to_race: whole weeks until race day.
+        race_distance_km: the race distance. Leave at 0 to use the race on file.
     """
+    from datetime import date
+
     st = athlete.state()
-    return json.dumps(athlete.race_readiness(
-        _runs(), race_distance_km, weeks_to_race, st.in_pain, st.days_off or 0), indent=2)
+    km = race_distance_km or {"half marathon": 21.1, "marathon": 42.2,
+                              "10k": 10.0, "5k": 5.0}.get(st.goal_race.lower(), 0.0)
+    if not km:
+        return json.dumps({"error": "No race distance known."})
+
+    days = None
+    if st.goal_race_date:
+        y, m, d = (int(x) for x in st.goal_race_date.split("-"))
+        today = date(*[int(x) for x in TODAY.split("-")]) if TODAY else date.today()
+        days = (date(y, m, d) - today).days
+
+    out = athlete.race_readiness(_runs(), km, max(round((days or 0) / 7), 0),
+                                 st.in_pain, st.days_off or 0)
+    out["race_date"] = st.goal_race_date
+    out["days_until_race"] = days
+    return json.dumps(out, indent=2)
 
 
 @tool
@@ -207,3 +225,55 @@ def publish_workout(day: str, description: str, distance_km: float,
         }, indent=2)
     return json.dumps(source().publish_workout({
         "day": day, "description": description, "distance_km": distance_km}), indent=2)
+
+
+@tool
+def get_journal() -> str:
+    """What this runner has told us before, and what they were told.
+
+    Symptoms they reported and whether those were ever marked cleared, advice
+    already given, weeks that were written, and what they actually ran against
+    what was planned.
+
+    Check this before anything else alongside their current state. A coach who
+    cannot remember what they asked for last week cannot tell whether it was
+    followed.
+    """
+    return json.dumps(journal.summary(_runs()), indent=2)
+
+
+@tool
+def remember_symptom(area: str, description: str, when: str = "") -> str:
+    """Write down that something hurts, so it is still known next time.
+
+    Args:
+        area: where it hurts, for example "both feet" or "left knee".
+        description: what the runner said, in their words.
+        when: the date it started, YYYY-MM-DD, if known.
+    """
+    return json.dumps(journal.add_event("symptom", description,
+                                        on=when or None, area=area), indent=2)
+
+
+@tool
+def remember_symptom_cleared(area: str, note: str = "") -> str:
+    """Write down that something that used to hurt no longer does.
+
+    Args:
+        area: the area that has cleared.
+        note: anything worth keeping, such as a physio's verdict.
+    """
+    return json.dumps(journal.add_event("symptom_cleared", note or f"{area} no longer sore",
+                                        area=area), indent=2)
+
+
+@tool
+def remember_advice(what_you_told_them: str) -> str:
+    """Write down a decision or piece of advice, so it is not repeated or
+    contradicted next time. Use this for race decisions and for anything you
+    told the runner not to do.
+
+    Args:
+        what_you_told_them: one or two sentences.
+    """
+    return json.dumps(journal.add_event("advice", what_you_told_them), indent=2)

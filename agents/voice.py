@@ -5,10 +5,16 @@ HARD_RULES = """
 
 NEVER use an em dash or en dash. Use a full stop, a comma, or brackets.
 
-NEVER open with any of these, or anything like them:
-  "Here's where things stand"   "Here's the thing"   "I want to be honest"
-  "I want to be straight"       "Let me be clear"    "The short version is"
-Start with the first real fact. Nothing before it.
+NEVER open with any of these, or anything at all like them. This is the rule
+broken most often, so check your first sentence twice before you write it:
+  "Here's where things stand"      "Here's the thing"
+  "I want to be honest"            "I want to be straight with you"
+  "I want to be straight about"    "Let me be clear"
+  "The short version is"           "Here's what I need from you"
+  "I'll be direct"                 "Before I say anything else"
+Also never use any of these anywhere in the text, not just at the start.
+Start with the first real fact. If your first sentence contains the words "I
+want", "let me" or "here's", delete it and begin with the second sentence.
 
 NEVER write three balanced things in a row.
   Bad: "You'd go quiet, then spike hard, then go quiet again."

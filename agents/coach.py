@@ -11,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
 
 from strands import Agent
+from strands.session import FileSessionManager
 
 from model import build_model
 from specialists import (form_analyst, load_analyst, physio, plan_writer,
@@ -50,9 +51,25 @@ not a doctor. If something looks worrying, say what you saw and that a
 physiotherapist is the right person to look at it."""
 
 
-def build_coach():
+SESSIONS = Path(__file__).resolve().parent.parent / ".sessions"
+
+
+def build_coach(session_id=None):
+    """Build the coach.
+
+    Pass a session_id and the conversation is kept on disk, so a follow-up
+    question a week later continues the same thread instead of starting cold.
+    The journal holds the durable facts about the runner; this holds the
+    conversation around them.
+    """
+    session = None
+    if session_id:
+        SESSIONS.mkdir(exist_ok=True)
+        session = FileSessionManager(session_id=session_id, storage_dir=str(SESSIONS))
+
     return Agent(
         model=build_model(),
         system_prompt=COACH_PROMPT,
         tools=[physio, load_analyst, form_analyst, plan_writer, safety_officer, publisher],
+        session_manager=session,
     )

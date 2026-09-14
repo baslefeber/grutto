@@ -15,3 +15,6 @@ __pycache__/
 .garmin_session/
 FEEDBACK*
 feedback.jsonl
+make_assets.py
+.sessions/
+journal.json
