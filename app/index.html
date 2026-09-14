@@ -209,6 +209,9 @@ function render(){
     double the four weeks before them. Your watch called all three of them optimal.`;
 }
 
+// deep link: /#why opens the evidence section
+if (location.hash === "#why") document.querySelector(".more").open = true;
+
 fetch("/api/state").then(r=>r.json()).then(d=>{S=d; render();})
   .catch(()=>{ render(); const t=document.querySelector(".tag");
     t.insertAdjacentHTML("beforeend",

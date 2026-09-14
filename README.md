@@ -4,6 +4,8 @@ A running coach that is allowed to say no.
 
 Built with the [Strands Agents SDK](https://strandsagents.com) on Amazon Bedrock.
 
+<img src="docs/img/coach.png" width="620" alt="Grutto telling the runner not to run today, with the reason and the numbers behind it">
+
 Named after the black-tailed godwit, the Dutch national bird. Its close
 relative flies 13,000 km without landing, eating or sleeping. Going a very long
 way without breaking down is the whole idea.
@@ -55,6 +57,8 @@ And here is the weekly picture, each week against the four before it:
     31 Aug     9.1 km
     07 Sep     0.0 km    stopped, both feet
 
+<img src="docs/img/weeks.png" width="620" alt="Weekly distance with three weeks marked in orange">
+
 There is a second thing the watch never surfaced as anything actionable. One of
 those 21 runs was in an easy heart rate zone. Garmin has been saying this every
 week in its own words, AEROBIC LOW SHORTAGE, on a screen with nothing attached
@@ -104,20 +108,38 @@ Every calculation is plain Python in `tools/`. The models read the numbers and
 explain them. They never work them out, because models are poor at arithmetic
 and good at judgement.
 
-## What it says when you are hurt
+## What it actually says
 
-Asked for a big week, by an injured runner, two weeks out from a race:
+Asked for a week by a runner whose feet have been sore for ten days, and who
+has since told the physio it is a 2 out of 10, does not hurt when walking, and
+is improving:
 
-> There's no training week to write here. The physio was clear: pain under both
-> feet, 10 days off running, and a race in two weeks. That combination means no
-> big week, and it means the half marathon is not safe to start.
+    plan_writer     -> safety_officer   REJECTED: first week back after 10 days
+                                        off should be at most about 8 km
+    plan_writer     -> safety_officer   APPROVED
+    publisher                           sent
+
+> Three easy runs this week, 7.5 km in total. Tuesday 2 km, Thursday 2.5 km,
+> Saturday 3 km, with rest days in between.
 >
-> Before I say anything else, see a physiotherapist. Not after the race, now.
+> Before you lace up on Tuesday, you need a physiotherapist to look at your
+> feet. That is not optional.
 >
-> Your longest run to date is just under 16 km, and the race is 21 km. That gap
-> has never been bridged in training, and this is not the week to try.
+> Every run is easy, heart rate under 145. If your feet react at any point
+> during a run, stop and call the physio before the next session. The goal this
+> week is three runs that finish feeling exactly the same as they started.
 
-Zero sessions. The gate was never even asked, because no week was proposed.
+Asked the same thing while the pain is a 6 out of 10, hurts when walking and is
+getting worse, it writes no week at all and says so in the first sentence.
+
+Ask it whether to race and it separates the two questions that get conflated:
+
+> Aerobically you are fine. Your fitness is around a 1:40 half marathon, and it
+> has been rising. The furthest you have ever run is 15.9 km and the race is
+> 21 km, 33% further.
+
+Your engine and your legs are not the same limit, and telling a fit runner they
+are unfit is simply wrong.
 
 ## Running it
 
