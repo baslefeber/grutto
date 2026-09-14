@@ -9,7 +9,7 @@ two, because six agents each think in turn.
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -127,6 +127,12 @@ def api_plan():
     session_id = (body.get("session_id") or "").strip() or None
 
     if as_of:
+        # a bad date used to sail through and quietly return every run, which
+        # is worse than failing, because the answer looks right
+        try:
+            date.fromisoformat(as_of)
+        except ValueError:
+            return jsonify({"error": f"as_of must look like 2026-08-24, got {as_of!r}"}), 400
         os.environ["GRUTTO_AS_OF"] = as_of
         agent_tools.TODAY = as_of
     else:
