@@ -447,3 +447,918 @@ const RECORDED_PLANS = {
     "gate": {"approved": false, "attempts": 0, "rejections": []}
   }
 };
+
+/* Icons: inline SVG fragments on a 24 unit grid, stroked with currentColor. */
+const ICONS = {
+  today: '<path d="M8 2v3M16 2v3M3 9h18"/><rect x="3" y="4" width="18" height="17" rx="3"/><path d="m9 15 2 2 4-4"/>',
+  case: '<path d="M3 20h18"/><rect x="5" y="10" width="3" height="8"/><rect x="10.5" y="4" width="3" height="14"/><rect x="16" y="12" width="3" height="6"/>',
+  intensity: '<path d="M3 12h4l2-5 3 10 2-7 2 4h5"/>',
+  plan: '<path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/>',
+  form: '<path d="M3 17c3 0 4-6 7-6s4 6 7 6 3-6 4-6"/><path d="M3 7h18"/>',
+  pain: '<path d="M12 3 2 21h20L12 3z"/><path d="M12 10v5M12 18h.01"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  jump: '<path d="M3 18h4V9h4v5h4V5h4"/>',
+  watch: '<rect x="7" y="6" width="10" height="12" rx="3"/><path d="M9 6V3h6v3M9 18v3h6v-3"/>',
+  physio: '<path d="M12 21s-8-5-8-11a4 4 0 0 1 8-1 4 4 0 0 1 8 1c0 6-8 11-8 11z"/><path d="M8 12h2l1-2 2 4 1-2h2"/>',
+  walk: '<circle cx="13" cy="4" r="1.5"/><path d="M10 21l2-7 3 3v4M7 13l3-6 4 1 2 4h3M13 10l-3 4"/>',
+  lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+  check: '<path d="m5 12 5 5L20 7"/>',
+  x: '<path d="M6 6l12 12M18 6 6 18"/>',
+  flag: '<path d="M5 21V4h11l-2 4 2 4H5"/>',
+  up: '<path d="M7 11v10H4V11zM7 11l4-8c1.5 0 2.5 1 2.5 2.5V10h5a2 2 0 0 1 2 2.3l-1.2 7A2 2 0 0 1 17.3 21H7"/>',
+  down: '<path d="M17 13V3h3v10zM17 13l-4 8c-1.5 0-2.5-1-2.5-2.5V14h-5a2 2 0 0 1-2-2.3l1.2-7A2 2 0 0 1 6.7 3H17"/>',
+  scale: '<path d="M12 3v18M5 7l7-2 7 2M3 14l2-7 2 7a2 2 0 0 1-4 0zM17 14l2-7 2 7a2 2 0 0 1-4 0z"/>',
+  pen: '<path d="M4 20h4l11-11-4-4L4 16z"/><path d="M13 7l4 4"/>',
+  shield: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="m9 12 2 2 4-4"/>',
+  send: '<path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/>',
+  heart: '<path d="M12 21s-8-5-8-11a4 4 0 0 1 8-1 4 4 0 0 1 8 1c0 6-8 11-8 11z"/>',
+  play: '<path d="M6 4v16l14-8z"/>',
+  refresh: '<path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
+  rewind: '<path d="M11 19 2 12l9-7zM22 19l-9-7 9-7z"/>',
+  coach: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  hand: '<path d="M8 12V5a2 2 0 0 1 4 0v6M12 11V4a2 2 0 0 1 4 0v7M16 11V6a2 2 0 0 1 4 0v8a7 7 0 0 1-7 7h-1a7 7 0 0 1-6-3.5L3 13a2 2 0 0 1 3-2l2 3"/>'
+};
+function icon(name) { return `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[name] || ''}</svg>`; }
+
+const AGENTS = {
+  physio: {label: 'Physio', icon: 'physio', blurb: 'Asked first. Can stop the week before it is written'},
+  load_analyst: {label: 'Load analyst', icon: 'case', blurb: 'Adds up every week and ratios it against the four before'},
+  form_analyst: {label: 'Form analyst', icon: 'form', blurb: 'Compares cadence and stride across runs at the same pace'},
+  plan_writer: {label: 'Plan writer', icon: 'pen', blurb: 'Writes the week'},
+  safety_officer: {label: 'Safety officer', icon: 'shield', blurb: 'Can refuse the week, and says why'},
+  publisher: {label: 'Publisher', icon: 'send', blurb: 'Sends the week to the watch'},
+  coach: {label: 'Coach', icon: 'coach', blurb: 'Writes the note you read'}
+};
+const AGENT_ORDER = ['physio', 'load_analyst', 'form_analyst', 'plan_writer', 'safety_officer', 'publisher'];
+
+/* Utilities */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const DOWS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const DOWL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+function pd(s) { const [y, m, d] = s.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)); }
+function fmtD(s) { const d = pd(s); return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`; }
+function fmtDL(s) { const d = pd(s); return `${DOWS[(d.getUTCDay() + 6) % 7]} ${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`; }
+function fmtDF(s) { const d = pd(s); return `${DOWL[d.getUTCDay()]} ${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`; }
+function addDays(s, n) { const d = pd(s); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
+function daysBetween(a, b) { return Math.round((pd(b) - pd(a)) / 86400000); }
+const km = m => m / 1000;
+const f1 = n => (Math.round(n * 10) / 10).toFixed(1);
+const f0 = n => Math.round(n).toString();
+function pace(distM, durS) { const spk = durS / (distM / 1000); const m = Math.floor(spk / 60), s = Math.round(spk % 60); return `${m}:${String(s).padStart(2, '0')}`; }
+const paceFromSpeed = mps => pace(1000, 1000 / mps);
+function dur(s) { const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60; return h ? `${h}:${String(m).padStart(2, '0')}:${String(ss).padStart(2, '0')}` : `${m}:${String(ss).padStart(2, '0')}`; }
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lin = (d0, d1, r0, r1) => v => r0 + (v - d0) / (d1 - d0) * (r1 - r0);
+const NS = 'http://www.w3.org/2000/svg';
+function S(tag, attrs = {}, kids = []) { const e = document.createElementNS(NS, tag); for (const k in attrs) if (attrs[k] != null) e.setAttribute(k, attrs[k]); for (const c of kids) e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); return e; }
+function T(x, y, text, attrs = {}) { return S('text', Object.assign({x, y, 'font-size': 11, fill: 'var(--t3)'}, attrs), [String(text)]); }
+function zoneOf(hr, ceil) { return hr <= ceil ? 'easy' : hr > ceil + 21 ? 'hard' : 'moderate'; }
+const ZONE = {easy: {c: 'ok', l: 'Easy'}, moderate: {c: 'warn', l: 'Moderate'}, hard: {c: 'stop', l: 'Hard'}};
+const FLAG = {ok: {c: 'ok', l: 'Ok'}, caution: {c: 'warn', l: 'Caution'}, high: {c: 'stop', l: 'Refuse'}, 'very low': {c: '', l: 'Low'}};
+function flagBadge(flag, kmv) {
+  if (flag == null) return '<span class="badge" style="opacity:.55">No baseline</span>';
+  if (flag === 'very low' && kmv === 0) return '<span class="badge" style="opacity:.7">Empty week</span>';
+  const f = FLAG[flag] || {c: '', l: flag}; return `<span class="badge ${f.c}">${f.l}</span>`;
+}
+function store(k, v) { try { if (v === undefined) return JSON.parse(localStorage.getItem('grutto.' + k)); localStorage.setItem('grutto.' + k, JSON.stringify(v)); } catch (e) { return null; } }
+function photo(name, cls, cap) { return `<div class="photo ${cls || ''}"><img src="${ASSETS}${name}" alt="" loading="lazy" onerror="this.parentNode.classList.add('fail')">${cap ? `<span class="cap">${cap}</span>` : ''}</div>`; }
+
+/* Tooltip */
+const tipEl = $('#tip');
+function tipMove(ev) { const pad = 14, w = tipEl.offsetWidth, h = tipEl.offsetHeight; let x = ev.clientX + pad, y = ev.clientY + pad; if (x + w > innerWidth - 8) x = ev.clientX - w - pad; if (y + h > innerHeight - 8) y = ev.clientY - h - pad; tipEl.style.left = x + 'px'; tipEl.style.top = y + 'px'; }
+function bindTip(el, htmlFn) { el.addEventListener('pointerenter', e => { tipEl.innerHTML = htmlFn(); tipEl.classList.add('on'); tipMove(e); }); el.addEventListener('pointermove', tipMove); el.addEventListener('pointerleave', () => tipEl.classList.remove('on')); }
+function toast(msg, ms = 2600) { const t = $('#toast'); t.innerHTML = msg; t.classList.add('on'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('on'), ms); }
+
+/* App state, nav, theme, API */
+const app = {state: null, source: 'checking', view: 'today', plan: null, planRunning: null};
+const VIEWS = [
+  {id: 'today', label: 'Today', icon: 'today', key: '1'},
+  {id: 'case', label: 'The case', icon: 'case', key: '2'},
+  {id: 'intensity', label: 'Intensity', icon: 'intensity', key: '3'},
+  {id: 'plan', label: 'Plan', icon: 'plan', key: '4'},
+  {id: 'form', label: 'Form', icon: 'form', key: '5'}
+];
+function buildNav() { $('#nav').innerHTML = VIEWS.map(v => `<li><a class="nav-item" href="#${v.id}" data-view="${v.id}">${icon(v.icon)}<span>${v.label}</span><span class="k">${v.key}</span></a></li>`).join(''); }
+function setView(id) {
+  if (!VIEWS.some(v => v.id === id)) id = 'today';
+  app.view = id;
+  $$('.nav-item').forEach(a => a.classList.toggle('active', a.dataset.view === id));
+  $$('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + id));
+  $('#crumb-view').textContent = VIEWS.find(v => v.id === id).label;
+  renderView(id); window.scrollTo({top: 0});
+}
+window.addEventListener('hashchange', () => setView(location.hash.slice(1)));
+document.addEventListener('keydown', e => { if (e.target.matches('input, textarea')) return; const v = VIEWS.find(v => v.key === e.key); if (v) location.hash = v.id; });
+function setTheme(t, persist = true) { document.documentElement.dataset.theme = t; $$('#theme-toggle button').forEach(b => b.classList.toggle('on', b.dataset.theme === t)); if (persist) store('theme', t); rerenderCharts(); }
+$('#theme-toggle').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setTheme(b.dataset.theme); });
+
+async function fetchJSON(path, opts = {}, timeoutMs = 5000) {
+  const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), timeoutMs);
+  try { const r = await fetch(API_BASE + path, Object.assign({signal: ctl.signal, headers: {'Content-Type': 'application/json'}}, opts)); if (!r.ok) throw new Error('HTTP ' + r.status); return await r.json(); }
+  finally { clearTimeout(t); }
+}
+function setSource(mode) {
+  app.source = mode;
+  const pill = $('#api-pill');
+  pill.className = 'status-pill ' + (mode === 'live' ? 'live' : mode === 'recorded' ? 'rec' : '');
+  $('#api-pill-t').textContent = mode === 'live' ? 'Live' : mode === 'recorded' ? 'Recorded' : 'Checking';
+  pill.title = mode === 'live' ? 'Reading from the server at ' + (API_BASE || location.origin) : mode === 'recorded' ? 'The server is not reachable. Showing the response recorded on 14 Sep 2026.' : 'Checking the server';
+  $('#topbar-meta').textContent = mode === 'recorded' ? 'Recorded response, 14 Sep 2026' : mode === 'live' ? 'Live from the Garmin record' : '';
+}
+async function loadState() {
+  setSource('checking');
+  try { const s = await fetchJSON('/api/state'); if (!s || !s.weeks || !s.runs) throw new Error('bad shape'); app.state = s; setSource('live'); }
+  catch (e) { app.state = FALLBACK_STATE; setSource('recorded'); }
+  renderRunner(); renderView(app.view);
+}
+$('#btn-refresh').addEventListener('click', async () => { await loadState(); toast(app.source === 'live' ? 'Reloaded from the server' : 'Server not reachable, showing the recorded response'); });
+
+function derived(s) {
+  const r = s.runner;
+  const runs = s.runs.slice().sort((a, b) => a.date < b.date ? -1 : 1);
+  const last = runs[runs.length - 1];
+  const highWeeks = s.weeks.filter(w => w.flag === 'high');
+  const emptyWeeks = s.weeks.filter(w => w.km === 0);
+  const longest = runs.reduce((a, b) => km(b.distance_m) > km(a.distance_m) ? b : a, runs[0]);
+  const totalKm = runs.reduce((a, b) => a + km(b.distance_m), 0);
+  return {runs, last, raceDays: daysBetween(TODAY, r.goal_race_date), highWeeks, emptyWeeks, longest, totalKm, stopDate: addDays(last.date, 1), nextCeiling: Math.round(s.ceiling_km * 1.3 * 10) / 10};
+}
+function weekOf(date) { return app.state.weeks.find(w => date >= w.week_starting && date <= addDays(w.week_starting, 6)); }
+function renderRunner() {
+  const r = app.state.runner;
+  $('#runner-name').textContent = r.name; $('#runner-avatar').textContent = r.name.slice(0, 1).toUpperCase();
+  $('#runner-state').innerHTML = r.in_pain ? `<span class="dot stop pulse"></span>Pain, ${esc(r.pain_area)}` : r.days_since_last_run >= 7 ? `<span class="dot warn"></span>${r.days_since_last_run} days off` : '<span class="dot ok"></span>Running';
+  $('#crumb-date').textContent = fmtDF(TODAY);
+}
+const chartRenderers = [];
+function rerenderCharts() { chartRenderers.forEach(fn => { try { fn(); } catch (e) {} }); }
+let resizeT; window.addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(rerenderCharts, 120); });
+function renderView(id) { if (!app.state) return; chartRenderers.length = 0; ({today: renderToday, case: renderCase, intensity: renderIntensity, plan: renderPlan, form: renderForm})[id](); }
+
+/* ============================== TODAY ============================== */
+function renderToday() {
+  const s = app.state, r = s.runner, d = derived(s), host = $('#view-today');
+  let call, cls, lead;
+  if (r.in_pain) {
+    call = 'Do not run today.'; cls = 'stop';
+    lead = `You have not run since ${fmtDL(d.last.date)} and you have said the pain in ${esc(r.pain_area)} is still there. Grutto will not write a running week until a physio has seen the feet. Walking is fine as long as it does not hurt.`;
+  } else if (r.days_since_last_run >= 7) {
+    call = 'Start again, short and easy.'; cls = 'warn';
+    lead = `You have been off for ${r.days_since_last_run} days. The first week back is capped at ${f1(s.ceiling_km)} km in total, and every run in it stays under ${s.intensity.easy_hr_ceiling} on heart rate.`;
+  } else {
+    call = 'Run today, keep it easy.'; cls = 'ok';
+    lead = `This week has room up to ${f1(s.ceiling_km)} km. Keep your heart rate under ${s.intensity.easy_hr_ceiling} for the whole run.`;
+  }
+  const wk0 = s.weeks[s.weeks.length - 1].week_starting;
+  const dayCells = DOWS.map((n, i) => { const date = addDays(wk0, i), t = date === TODAY; return `<div class="day rest ${t ? 'today' : ''}"><div class="n">${t ? 'Today' : n}</div><div class="d">${pd(date).getUTCDate()}</div><div class="v">${date < TODAY ? 'no run' : 'rest'}</div></div>`; }).join('');
+  const lastHigh = d.highWeeks[d.highWeeks.length - 1];
+  const easyNamed = d.runs.filter(x => /easy/i.test(x.name));
+
+  host.innerHTML = `
+    <div class="props">
+      <div class="prop"><div class="k">Last run</div><div class="v">${fmtDL(d.last.date)} <small>${f1(km(d.last.distance_m))} km</small></div></div>
+      <div class="prop"><div class="k">Days off</div><div class="v ${r.days_since_last_run >= 7 ? 'stop' : ''}">${r.days_since_last_run}</div></div>
+      <div class="prop"><div class="k">Pain</div><div class="v">${r.in_pain ? `<span class="badge stop"><span class="dot"></span>${esc(r.pain_area)}</span>` : '<span class="badge ok">None reported</span>'}</div></div>
+      <div class="prop"><div class="k">Four-week average</div><div class="v">${f1(s.chronic_km)} <small>km / week</small></div></div>
+      <div class="prop"><div class="k">First week back</div><div class="v">${f1(s.ceiling_km)} <small>km at most</small></div></div>
+      <div class="prop"><div class="k">${esc(r.goal_race)}</div><div class="v">${fmtDL(r.goal_race_date)} <small>in ${d.raceDays} days</small></div></div>
+    </div>
+    <div class="grid">
+      <div class="c7 stack">
+        <div class="card raised">
+          <div class="decision">
+            <div class="card-b" style="padding:20px 20px 16px">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><span class="badge ${cls} lg"><span class="dot"></span>${cls === 'stop' ? 'Rest day' : cls === 'warn' ? 'Return week' : 'Run'}</span><span class="t-meta">${fmtDF(TODAY)}</span></div>
+              <div class="t-disp">${call}</div>
+              <p class="t-lead" style="margin:12px 0 0;max-width:560px">${lead}</p>
+            </div>
+            ${cls === 'stop' ? photo('empty-state.png', '', 'A rest day is a decision, not a gap in the record') : ''}
+          </div>
+          <div class="card-b" style="border-top:1px solid var(--line);padding:4px 20px 16px">
+            <div class="t-cap" style="margin:10px 0 6px">Why</div>
+            <div class="reasons">
+              ${r.in_pain ? `<div class="reason"><div class="ic stop">${icon('pain')}</div><div><div class="tt">Pain in ${esc(r.pain_area)}, still there today</div><div class="dd">Pain is read by a physio. Grutto does not write a week around it and does not guess what it is.</div></div><div class="val stop">${daysBetween(d.stopDate, TODAY)}<small>days since it started</small></div></div>` : ''}
+              <div class="reason"><div class="ic warn">${icon('clock')}</div><div><div class="tt">${r.days_since_last_run} days without running</div><div class="dd">The four-week average has already fallen to ${f1(s.chronic_km)} km and drops further every day you are off. The first week back is capped at ${f1(s.ceiling_km)} km however you feel on the day.</div></div><div class="val">${f1(s.ceiling_km)}<small>km ceiling</small></div></div>
+              <div class="reason"><div class="ic stop">${icon('jump')}</div><div><div class="tt">${d.highWeeks.length} weeks that jumped too far</div><div class="dd">${d.highWeeks.map(w => fmtD(w.week_starting)).join(', ')} each ran more than twice the four weeks before them. The last one ended ${daysBetween(addDays(lastHigh.week_starting, 6), d.stopDate)} days before you stopped.</div></div><div class="val">${Math.max(...d.highWeeks.map(w => w.ratio)).toFixed(1)}&times;<small>biggest jump</small></div></div>
+              <div class="reason"><div class="ic watch">${icon('watch')}</div><div><div class="tt">The watch called all of it fine</div><div class="dd">${s.garmin.map(g => fmtD(g.date)).join(', ')}: <span class="mono watchc">${esc(s.garmin[0].status)}</span> and <span class="mono watchc">${esc(s.garmin[0].feedback)}</span>. It scores effort from heart rate. It does not count how often your feet land.</div></div><div class="val watchc">${s.garmin.length}<small>readings</small></div></div>
+            </div>
+          </div>
+          <div class="card-f" style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+            <span>Only ${s.intensity.easy_runs} of ${s.intensity.runs_with_hr} runs this summer was easy. <a href="#intensity" style="color:var(--t2)">See every run against the easy line</a></span>
+            <a class="btn sm" href="#case">${icon('case')}The case</a>
+          </div>
+        </div>
+        <div class="grid">
+          <div class="c7"><div class="card" style="height:100%">
+            <div class="card-h"><div class="t">${icon('flag')}Race call</div><div class="m">${esc(r.goal_race)}, ${fmtDL(r.goal_race_date)}</div></div>
+            <div class="card-b">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><span class="badge stop lg"><span class="dot"></span>${esc(s.race.call)}</span><span class="t-meta">${s.race.weeks_to_race} weeks out</span></div>
+              <div class="chart" id="race-bar"></div>
+              <div class="t-cap" style="margin:18px 0 6px">What is in the way</div>
+              <div class="kv">${s.race.problems.map(p => `<div style="justify-content:flex-start;gap:10px"><span class="dot stop" style="margin-top:6px"></span><span class="dim">${esc(p)}</span></div>`).join('')}</div>
+              <div class="t-cap" style="margin:16px 0 6px">Instead</div>
+              <div class="kv">${s.race.alternatives.map(p => `<div style="justify-content:flex-start;gap:10px"><span class="dot ok" style="margin-top:6px"></span><span class="dim">${esc(p)}</span></div>`).join('')}</div>
+            </div>
+          </div></div>
+          <div class="c5 stack">
+            <div class="card">
+              <div class="card-h"><div class="t">${icon('today')}This week</div><div class="m">${fmtD(wk0)} to ${fmtD(addDays(wk0, 6))}</div></div>
+              <div class="card-b">
+                <div class="days">${dayCells}</div>
+                <div class="t-cap" style="margin:16px 0 8px">Ceiling once you are cleared</div>
+                <div class="ceil" id="ceil-bar"></div><div class="ceil-lab" id="ceil-lab"></div>
+                <p class="help" style="margin:10px 0 0">The first week back is 60 percent of your four-week average. Each week after that can be at most 1.3 times the four before it.</p>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-h"><div class="t">${icon('check')}Today instead</div><div class="m" id="check-meta"></div></div>
+              <div class="card-b" style="padding:4px 16px 8px"><div class="check" id="check-list">
+                <label><input type="checkbox" data-k="physio"><span>Book a physio appointment for the feet</span></label>
+                <label><input type="checkbox" data-k="walk"><span>Walk 20 to 30 minutes if it does not hurt</span></label>
+                <label><input type="checkbox" data-k="note"><span>Write down how the feet feel tonight</span></label>
+                <label><input type="checkbox" data-k="watch"><span>Keep wearing the watch so the record stays whole</span></label>
+              </div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="c5 stack">
+        <div class="card">
+          <div class="card-h"><div class="t">${icon('walk')}Back to running</div><div class="m">Each step opens after the one before it</div></div>
+          <div class="card-b"><div class="rail">
+            <div class="rail-step now"><div class="rail-node"><span class="dot stop pulse"></span></div><div><div class="tt">Get the feet looked at <span class="badge stop">Now</span></div><div class="dd">No running until a physio has seen them. Walk if it does not hurt. Grutto stays on this step for as long as you report pain.</div></div><div class="rv">0 km<small>running</small></div></div>
+            <div class="rail-step locked"><div class="rail-node">2</div><div><div class="tt">Two days of walking without pain</div><div class="dd">Thirty minutes each, on a flat surface. Any pain during or the morning after sends you back to step 1.</div></div><div class="rv">0 km<small>running</small></div></div>
+            <div class="rail-step locked"><div class="rail-node">3</div><div><div class="tt">First run back</div><div class="dd">Twenty minutes of walking and running in turns, 3 km at most, heart rate under ${s.intensity.easy_hr_ceiling} the whole time.</div></div><div class="rv">&le; 3 km<small>one run</small></div></div>
+            <div class="rail-step locked"><div class="rail-node">4</div><div><div class="tt">First full week</div><div class="dd">Three short runs, all easy, ${f1(s.ceiling_km)} km in total at most. That is 60 percent of your ${f1(s.chronic_km)} km average, which is where ${r.days_since_last_run} days off leaves a runner.</div></div><div class="rv">&le; ${f1(s.ceiling_km)} km<small>week</small></div></div>
+            <div class="rail-step locked"><div class="rail-node">5</div><div><div class="tt">Build again</div><div class="dd">No week more than 1.3 times the four before it, and no single run more than 35 percent of its week. The race question comes back once you have four weeks in a row.</div></div><div class="rv">&le; ${f1(d.nextCeiling)} km<small>week 2</small></div></div>
+          </div></div>
+          <div class="card-f">Pain that comes back at any step means going back to the step before it, not a rest day and a retry.</div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div class="t">${icon('watch')}What the watch said</div><div class="m">Last three readings</div></div>
+          <div class="card-b tight"><table class="tbl">
+            <thead><tr><th>Date</th><th>Status</th><th>Feedback</th><th class="r">Watch ratio</th><th class="r">Grutto ratio</th></tr></thead>
+            <tbody>${s.garmin.map(g => { const wk = weekOf(g.date); return `<tr><td>${fmtDL(g.date)}</td><td><span class="badge watch">${esc(g.status)}</span></td><td><span class="badge watch">${esc(g.feedback)}</span></td><td class="r mono">${g.load_ratio.toFixed(1)}</td><td class="r"><b class="${wk && wk.flag === 'high' ? 'stop' : ''}">${wk && wk.ratio != null ? wk.ratio.toFixed(2) : ''}</b></td></tr>`; }).join('')}</tbody>
+          </table></div>
+          <div class="card-f">The watch ratios effort. Grutto ratios distance and counts the weeks you did not run. Same days, different answer.</div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div class="t">${icon('heart')}Named easy, run hard</div><div class="m">${easyNamed.length} runs called "Easy Run"</div></div>
+          <div class="card-b"><div class="kv">
+            <div><span class="k">Average heart rate on them</span><span class="v">${f0(easyNamed.reduce((a, x) => a + x.avg_hr, 0) / easyNamed.length)} <small>bpm</small></span></div>
+            <div><span class="k">Easy ceiling for you</span><span class="v">${s.intensity.easy_hr_ceiling} <small>bpm</small></span></div>
+            <div><span class="k">Of them actually easy</span><span class="v">${easyNamed.filter(x => x.avg_hr <= s.intensity.easy_hr_ceiling).length} <small>of ${easyNamed.length}</small></span></div>
+          </div></div>
+        </div>
+      </div>
+    </div>`;
+
+  const saved = store('checks') || {};
+  const updMeta = () => { $('#check-meta').textContent = `${$$('#check-list input:checked').length} of 4 done`; };
+  $$('#check-list input').forEach(i => { i.checked = !!saved[i.dataset.k]; i.addEventListener('change', () => { saved[i.dataset.k] = i.checked; store('checks', saved); updMeta(); }); });
+  updMeta();
+  const maxKm = Math.max(s.chronic_km * 1.3, 16), pct = v => (v / maxKm * 100).toFixed(1) + '%';
+  $('#ceil-bar').innerHTML = `<div class="fill" style="width:${pct(s.weeks[s.weeks.length - 1].km)}"></div><div class="mark" style="left:${pct(s.ceiling_km)}"></div><div class="mark warn" style="left:${pct(d.nextCeiling)}"></div><div class="mark mute" style="left:${pct(s.chronic_km)}"></div>`;
+  $('#ceil-lab').innerHTML = `<span class="l">0 km this week</span><span style="left:${pct(s.ceiling_km)}" class="stop">${f1(s.ceiling_km)} first week</span><span style="left:${pct(s.chronic_km)}">${f1(s.chronic_km)} avg</span><span class="r" style="left:100%">${f1(maxKm)} km</span>`;
+  const draw = () => drawRaceBar($('#race-bar'), s, d); chartRenderers.push(draw); draw();
+}
+function drawRaceBar(host, s, d) {
+  const W = host.clientWidth || 400, H = 74, x = lin(0, s.race.race_km, 8, W - 8);
+  const svg = S('svg', {width: W, height: H, viewBox: `0 0 ${W} ${H}`});
+  svg.appendChild(S('rect', {x: 8, y: 30, width: W - 16, height: 8, rx: 2, fill: 'var(--s4)'}));
+  svg.appendChild(S('rect', {x: 8, y: 30, width: x(s.race.longest_ever_km) - 8, height: 8, rx: 2, fill: 'var(--bar-2)'}));
+  svg.appendChild(S('rect', {x: 8, y: 30, width: x(s.chronic_km) - 8, height: 8, rx: 2, fill: 'var(--t2)'}));
+  const tick = (v, label, sub, color, anchor) => { svg.appendChild(S('line', {x1: x(v), x2: x(v), y1: 24, y2: 44, stroke: color, 'stroke-width': 2})); svg.appendChild(T(x(v), 16, label, {'text-anchor': anchor, fill: color, 'font-weight': 600})); svg.appendChild(T(x(v), 60, sub, {'text-anchor': anchor})); };
+  tick(s.chronic_km, `${f1(s.chronic_km)} km`, 'an average week', 'var(--t2)', 'middle');
+  tick(s.race.longest_ever_km, `${f1(s.race.longest_ever_km)} km`, 'longest ever, ' + fmtD(d.longest.date), 'var(--t1)', 'middle');
+  tick(s.race.race_km, `${f1(s.race.race_km)} km`, 'the race', 'var(--stop)', 'end');
+  host.innerHTML = ''; host.appendChild(svg);
+}
+
+/* ============================== THE CASE ============================== */
+function renderCase() {
+  const s = app.state, d = derived(s), host = $('#view-case');
+  const lastJ = s.longest_jumps[s.longest_jumps.length - 1];
+  host.innerHTML = `
+    <div class="view-head">
+      <div>
+        <div class="t-h2">The same ${s.weeks.length - 1} weeks, read two ways</div>
+        <p class="t-lead">Weekly distance from ${s.runs.length} recorded runs, the ratio of each week to the four before it, and what the watch reported on the same days. ${d.highWeeks.length} weeks ran more than double the four before them. The watch called each of them ${esc(s.garmin[0].status.toLowerCase())}.</p>
+      </div>
+      <div class="legend" style="flex:none;max-width:380px;justify-content:flex-end">
+        <span><i style="background:var(--bar-2)"></i>Week, km</span><span><i style="background:var(--stop)"></i>Jumped too far</span><span><i style="background:var(--warn)"></i>Caution</span>
+        <span><i class="line" style="background:var(--t1)"></i>Ratio to previous four</span><span class="stop"><i class="dash"></i>1.5 refused above</span><span class="watchc"><i class="dia" style="background:var(--watch)"></i>Watch reading</span>
+      </div>
+    </div>
+    <div class="card raised" style="margin-bottom:16px">
+      <div class="card-h"><div class="t">${icon('case')}Weekly distance and ratio, ${fmtD(s.weeks[0].week_starting)} to race day</div><div class="m"><span>Left axis km, right axis ratio</span><span class="kbd">hover a week</span></div></div>
+      <div class="card-b" style="padding:12px 12px 8px"><div class="chart" id="case-chart"></div></div>
+    </div>
+    <div class="grid">
+      <div class="c7"><div class="card">
+        <div class="card-h"><div class="t">Week by week</div><div class="m">${s.weeks.length} weeks, ${f1(d.totalKm)} km in total</div></div>
+        <div class="card-b tight" style="overflow-x:auto"><table class="tbl">
+          <thead><tr><th>Week of</th><th class="r">km</th><th class="bar-cell"></th><th class="r">Prev 4 avg</th><th class="r">Ratio</th><th>Grutto</th><th>Watch</th></tr></thead>
+          <tbody>${s.weeks.map(w => {
+            const prev = w.ratio ? w.km / w.ratio : null, g = s.garmin.filter(x => x.date >= w.week_starting && x.date <= addDays(w.week_starting, 6));
+            const cls = w.flag === 'high' ? 'stop' : w.flag === 'caution' ? 'warn' : '', maxW = Math.max(...s.weeks.map(x => x.km));
+            return `<tr class="${w.flag === 'high' ? 'hl' : ''}"><td>${fmtD(w.week_starting)}${w.week_starting === s.weeks[s.weeks.length - 1].week_starting ? ' <span class="t-meta">this week</span>' : ''}</td><td class="r"><b>${f1(w.km)}</b></td><td class="bar-cell"><div class="mini-bar"><i class="${cls}" style="width:${(w.km / maxW * 100).toFixed(1)}%"></i></div></td><td class="r mono">${prev && isFinite(prev) ? f1(prev) : ''}</td><td class="r"><b class="${cls}">${w.ratio ? w.ratio.toFixed(2) : w.ratio === 0 ? '0' : ''}</b></td><td>${flagBadge(w.flag, w.km)}</td><td>${g.length ? `<span class="badge watch">${esc(g[0].status)}</span>` : '<span class="t-meta">no reading</span>'}</td></tr>`;
+          }).join('')}</tbody>
+        </table></div>
+        <div class="card-f">Ratio is the week divided by the average of the four before it. The current week is left out of its own baseline. Weeks with no running count as zero.</div>
+      </div></div>
+      <div class="c5 stack">
+        <div class="card">
+          <div class="card-h"><div class="t">${icon('scale')}Where the two disagree</div></div>
+          <div class="card-b"><div class="reasons">
+            <div class="reason"><div class="ic stop">${icon('jump')}</div><div><div class="tt">Distance, not heart rate</div><div class="dd">Bone, tendon and the tissue under the foot respond to how many times the foot lands. A week that doubles the distance at the same effort looks flat to a heart rate score.</div></div><div class="val stop">${d.highWeeks.length}<small>weeks over 1.5</small></div></div>
+            <div class="reason"><div class="ic warn">${icon('clock')}</div><div><div class="tt">Empty weeks count</div><div class="dd">A week with no running pulls the four-week average down. A watch that only sees sessions cannot tell resting from nothing happening.</div></div><div class="val">${d.emptyWeeks.length}<small>empty weeks</small></div></div>
+            <div class="reason"><div class="ic ok">${icon('heart')}</div><div><div class="tt">Is any of it easy?</div><div class="dd">Easy running under ${s.intensity.easy_hr_ceiling} is what lets the feet adapt to more distance. This summer had one such run.</div></div><div class="val">${s.intensity.easy_runs}<small>of ${s.intensity.runs_with_hr} easy</small></div></div>
+          </div></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div class="t">Longest run, each time it grew</div><div class="m">Jumps over 20% marked</div></div>
+          <div class="card-b tight"><table class="tbl">
+            <thead><tr><th>Date</th><th class="r">From</th><th class="r">To</th><th class="r">Jump</th></tr></thead>
+            <tbody>${s.longest_jumps.map(j => `<tr><td>${fmtD(j.date)}</td><td class="r mono">${f1(j.previous_longest_km)}</td><td class="r"><b>${f1(j.km)}</b></td><td class="r"><span class="badge ${j.big_jump ? 'stop' : ''}">+${f0(j.increase_pct)}%</span></td></tr>`).join('')}</tbody>
+          </table></div>
+          <div class="card-f">The longest run went from ${f1(s.longest_jumps[0].previous_longest_km)} to ${f1(lastJ.km)} km in ${daysBetween(d.runs[0].date, lastJ.date)} days. The race is ${f1(s.race.race_km)} km.</div>
+        </div>
+      </div>
+    </div>`;
+  const draw = () => drawCaseChart($('#case-chart'), s, d); chartRenderers.push(draw); draw();
+}
+
+function drawCaseChart(host, s, d) {
+  const W = Math.max(host.clientWidth, 640), H = 470, m = {l: 44, r: 48, t: 30, b: 118};
+  const plotW = W - m.l - m.r, plotH = H - m.t - m.b, plotB = m.t + plotH;
+  const weeks = s.weeks.slice();
+  const raceWeekStart = (() => { const rd = pd(s.runner.goal_race_date); return addDays(s.runner.goal_race_date, -((rd.getUTCDay() + 6) % 7)); })();
+  const cols = weeks.map(w => ({...w})); let cursor = addDays(weeks[weeks.length - 1].week_starting, 7);
+  while (cursor <= raceWeekStart) { cols.push({week_starting: cursor, km: null, ratio: null, flag: null, ghost: true}); cursor = addDays(cursor, 7); }
+  const n = cols.length, band = plotW / n, bw = Math.min(band * 0.58, 40);
+  const maxKm = Math.ceil(Math.max(...weeks.map(w => w.km)) / 5) * 5 + 5, y = lin(0, maxKm, plotB, m.t);
+  const maxR = 2.5, yr = lin(0, maxR, plotB, m.t);
+  const xc = i => m.l + band * i + band / 2;
+  const xDate = date => m.l + daysBetween(cols[0].week_starting, date) / 7 * band + band / 14;
+  const svg = S('svg', {width: W, height: H, viewBox: `0 0 ${W} ${H}`}), g = S('g'); svg.appendChild(g);
+
+  g.appendChild(S('rect', {x: m.l, y: yr(1.5), width: plotW, height: yr(1.3) - yr(1.5), fill: 'var(--warn-bg)'}));
+  g.appendChild(S('rect', {x: m.l, y: m.t, width: plotW, height: yr(1.5) - m.t, fill: 'var(--stop-bg)', opacity: 0.55}));
+  const hlLayer = S('g'); g.appendChild(hlLayer);
+  for (let v = 0; v <= maxKm; v += 5) { g.appendChild(S('line', {x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: v === 0 ? 'var(--line-3)' : 'var(--grid)'})); g.appendChild(T(m.l - 8, y(v) + 4, v, {'text-anchor': 'end', 'font-family': 'var(--mono)'})); }
+  g.appendChild(T(m.l - 8, m.t - 12, 'km', {'text-anchor': 'end', 'font-weight': 600}));
+  for (let v = 0.5; v <= maxR; v += 0.5) g.appendChild(T(W - m.r + 8, yr(v) + 4, v.toFixed(1), {'font-family': 'var(--mono)', fill: v === 1.5 ? 'var(--stop)' : 'var(--t3)', 'font-weight': v === 1.5 ? 600 : 400}));
+  g.appendChild(T(W - m.r + 8, m.t - 12, 'ratio', {'font-weight': 600}));
+  g.appendChild(S('line', {x1: m.l, x2: W - m.r, y1: yr(1.5), y2: yr(1.5), stroke: 'var(--stop)', 'stroke-dasharray': '4 4', 'stroke-width': 1.2}));
+  g.appendChild(S('line', {x1: m.l, x2: W - m.r, y1: yr(1.3), y2: yr(1.3), stroke: 'var(--warn)', 'stroke-dasharray': '2 4', opacity: 0.8}));
+  g.appendChild(T(m.l + 6, yr(1.5) - 5, 'refused above 1.5', {fill: 'var(--stop)', 'font-weight': 600}));
+  g.appendChild(T(m.l + 6, yr(1.3) + 12, 'caution from 1.3', {fill: 'var(--warn)'}));
+
+  cols.forEach((w, i) => {
+    const cx = xc(i);
+    if (w.ghost) { g.appendChild(S('rect', {x: cx - bw / 2, y: m.t, width: bw, height: plotH, fill: 'none', stroke: 'var(--line-2)', 'stroke-dasharray': '3 3', rx: 2})); return; }
+    const fill = w.flag === 'high' ? 'var(--stop)' : w.flag === 'caution' ? 'var(--warn)' : 'var(--bar-2)';
+    if (w.km > 0) { g.appendChild(S('rect', {x: cx - bw / 2, y: y(w.km), width: bw, height: plotB - y(w.km), fill, rx: 2})); g.appendChild(T(cx, y(w.km) - 6, f1(w.km), {'text-anchor': 'middle', fill: w.flag === 'high' ? 'var(--stop)' : 'var(--t2)', 'font-weight': w.flag === 'high' ? 600 : 500})); }
+    else { g.appendChild(S('rect', {x: cx - bw / 2, y: plotB - 3, width: bw, height: 3, fill: 'none', stroke: 'var(--line-3)', 'stroke-dasharray': '2 2'})); g.appendChild(T(cx, plotB - 8, '0', {'text-anchor': 'middle', fill: 'var(--t4)'})); }
+    if (w.flag === 'high') { g.appendChild(S('rect', {x: cx - 17, y: y(w.km) - 34, width: 34, height: 16, rx: 3, fill: 'var(--stop)'})); g.appendChild(T(cx, y(w.km) - 22, w.ratio.toFixed(1) + '×', {'text-anchor': 'middle', fill: '#fff', 'font-weight': 700, 'font-size': 10.5})); }
+  });
+  const pts = cols.map((w, i) => w.ratio != null && !w.ghost ? [xc(i), yr(Math.min(w.ratio, maxR))] : null).filter(Boolean);
+  g.appendChild(S('path', {d: pts.map((p, i) => (i ? 'L' : 'M') + p[0] + ' ' + p[1]).join(' '), fill: 'none', stroke: 'var(--t1)', 'stroke-width': 1.8, 'stroke-linejoin': 'round'}));
+  cols.forEach((w, i) => { if (w.ratio == null || w.ghost) return; g.appendChild(S('circle', {cx: xc(i), cy: yr(Math.min(w.ratio, maxR)), r: 3.5, fill: w.ratio >= 1.5 ? 'var(--stop)' : 'var(--bg)', stroke: 'var(--t1)', 'stroke-width': 1.6})); });
+
+  const xi = xDate(d.stopDate);
+  g.appendChild(S('line', {x1: xi, x2: xi, y1: m.t - 4, y2: plotB, stroke: 'var(--stop)', 'stroke-width': 1.2, 'stroke-dasharray': '3 3'}));
+  g.appendChild(S('circle', {cx: xi, cy: m.t - 8, r: 3.5, fill: 'var(--stop)'}));
+  g.appendChild(T(xi + 8, m.t - 5, `${fmtD(d.stopDate)}, stopped with pain in ${s.runner.pain_area}`, {fill: 'var(--stop)', 'font-weight': 600}));
+  const xr = xDate(s.runner.goal_race_date);
+  g.appendChild(S('line', {x1: xr, x2: xr, y1: m.t + 18, y2: plotB, stroke: 'var(--line-3)', 'stroke-dasharray': '2 3'}));
+  const fl = S('g', {transform: `translate(${xr - 7} ${m.t + 3})`, fill: 'none', stroke: 'var(--t2)', 'stroke-width': 1.5}); fl.innerHTML = '<path d="M2 12V1h7l-1.5 3L9 7H2"/>'; g.appendChild(fl);
+  g.appendChild(T(xr - 10, m.t + 14, `${s.runner.goal_race}, ${fmtD(s.runner.goal_race_date)}`, {'text-anchor': 'end', fill: 'var(--t2)', 'font-weight': 600}));
+  const xt = xDate(TODAY);
+  g.appendChild(S('line', {x1: xt, x2: xt, y1: plotB, y2: plotB + 6, stroke: 'var(--accent)', 'stroke-width': 2}));
+  cols.forEach((w, i) => g.appendChild(T(xc(i), plotB + 16, fmtD(w.week_starting), {'text-anchor': 'middle', fill: w.ghost ? 'var(--t4)' : 'var(--t3)'})));
+
+  /* the two rails: what each said, aligned under the same weeks */
+  const r1 = plotB + 46, r2 = plotB + 78;
+  g.appendChild(S('line', {x1: m.l, x2: W - m.r, y1: r1 - 16, y2: r1 - 16, stroke: 'var(--line)'}));
+  g.appendChild(T(m.l - 8, r1 + 4, 'Watch', {'text-anchor': 'end', 'font-weight': 600, fill: 'var(--watch)'}));
+  g.appendChild(T(m.l - 8, r2 + 4, 'Grutto', {'text-anchor': 'end', 'font-weight': 600, fill: 'var(--t1)'}));
+  g.appendChild(S('line', {x1: m.l, x2: W - m.r, y1: r1, y2: r1, stroke: 'var(--grid-2)'}));
+  g.appendChild(S('line', {x1: m.l, x2: W - m.r, y1: r2, y2: r2, stroke: 'var(--grid-2)'}));
+  const gx = s.garmin.map(gg => xDate(gg.date));
+  if (gx.length) {
+    g.appendChild(S('line', {x1: Math.min(...gx), x2: Math.max(...gx), y1: r1, y2: r1, stroke: 'var(--watch)', 'stroke-width': 2}));
+    gx.forEach(x => g.appendChild(S('rect', {x: x - 5, y: r1 - 5, width: 10, height: 10, fill: 'var(--watch)', transform: `rotate(45 ${x} ${r1})`, stroke: 'var(--bg)', 'stroke-width': 1.5})));
+    const lab = `${s.garmin[0].status} · ${s.garmin[0].feedback}`, lw = lab.length * 6.6 + 16, lx = clamp((Math.min(...gx) + Math.max(...gx)) / 2, m.l + lw / 2, W - m.r - lw / 2);
+    g.appendChild(S('rect', {x: lx - lw / 2, y: r1 + 9, width: lw, height: 16, rx: 3, fill: 'var(--watch-bg)', stroke: 'var(--watch-line)'}));
+    g.appendChild(T(lx, r1 + 20.5, lab, {'text-anchor': 'middle', fill: 'var(--watch)', 'font-family': 'var(--mono)', 'font-size': 10, 'font-weight': 600}));
+    g.appendChild(T(m.l + 4, r1 - 4, 'no readings kept before ' + fmtD(s.garmin[0].date), {fill: 'var(--t4)', 'font-size': 10}));
+  }
+  cols.forEach((w, i) => {
+    if (w.ghost) return;
+    const cx = xc(i); let txt, f, st, tc;
+    if (w.flag == null) { g.appendChild(S('circle', {cx, cy: r2, r: 2, fill: 'var(--line-3)'})); return; }
+    if (w.km === 0) { txt = 'empty'; f = 'var(--s3)'; st = 'var(--line-2)'; tc = 'var(--t3)'; }
+    else if (w.flag === 'high') { txt = 'refuse'; f = 'var(--stop)'; st = 'var(--stop)'; tc = '#fff'; }
+    else if (w.flag === 'caution') { txt = 'caution'; f = 'var(--warn-bg)'; st = 'var(--warn-line)'; tc = 'var(--warn)'; }
+    else if (w.flag === 'very low') { txt = 'low'; f = 'var(--s3)'; st = 'var(--line-2)'; tc = 'var(--t3)'; }
+    else { txt = 'ok'; f = 'var(--ok-bg)'; st = 'var(--ok-line)'; tc = 'var(--ok)'; }
+    const tw = Math.max(txt.length * 6.2 + 12, 30);
+    g.appendChild(S('rect', {x: cx - tw / 2, y: r2 - 8, width: tw, height: 16, rx: 3, fill: f, stroke: st}));
+    g.appendChild(T(cx, r2 + 3.5, txt, {'text-anchor': 'middle', fill: tc, 'font-size': 10, 'font-weight': 600, 'letter-spacing': '0.04em'}));
+  });
+  cols.forEach((w, i) => {
+    const hit = S('rect', {x: m.l + band * i, y: m.t - 12, width: band, height: plotH + 12 + 96, class: 'hit'});
+    const hl = S('rect', {x: m.l + band * i, y: m.t - 12, width: band, height: plotH + 12, fill: 'var(--t1)', opacity: 0, rx: 3}); hlLayer.appendChild(hl);
+    hit.addEventListener('pointerenter', () => hl.setAttribute('opacity', 0.035)); hit.addEventListener('pointerleave', () => hl.setAttribute('opacity', 0));
+    bindTip(hit, () => {
+      if (w.ghost) return `<div class="th"><span>Week of ${fmtD(w.week_starting)}</span></div><div class="note">Race day falls in this week. No week has been written for it.</div>`;
+      const gg = s.garmin.filter(x => x.date >= w.week_starting && x.date <= addDays(w.week_starting, 6)), prev = w.ratio ? w.km / w.ratio : null;
+      const runs = s.runs.filter(r => r.date >= w.week_starting && r.date <= addDays(w.week_starting, 6));
+      return `<div class="th"><span>Week of ${fmtD(w.week_starting)}</span>${flagBadge(w.flag, w.km)}</div><div class="tr"><span>Distance</span><b>${f1(w.km)} km</b></div><div class="tr"><span>Runs</span><b>${runs.length}</b></div>${prev && isFinite(prev) ? `<div class="tr"><span>Previous four weeks</span><b>${f1(prev)} km avg</b></div>` : ''}${w.ratio != null ? `<div class="tr"><span>Ratio</span><b class="${w.flag === 'high' ? 'stop' : ''}">${w.ratio.toFixed(2)}</b></div>` : '<div class="tr"><span>Ratio</span><b>needs two prior weeks</b></div>'}${gg.length ? `<div class="note watchc">Watch on ${gg.map(x => fmtD(x.date)).join(' and ')}: ${gg[0].status}, ${gg[0].feedback}</div>` : ''}${w.flag === 'high' ? `<div class="note">Grutto would have refused this week at ${(prev * 1.3).toFixed(1)} km.</div>` : ''}`;
+    });
+    g.appendChild(hit);
+  });
+  host.innerHTML = ''; host.appendChild(svg);
+}
+
+/* ============================== INTENSITY ============================== */
+let runSort = 'newest';
+function renderIntensity() {
+  const s = app.state, it = s.intensity, d = derived(s), host = $('#view-intensity');
+  const ceil = it.easy_hr_ceiling, hardFrom = ceil + 22, total = it.easy_runs + it.moderate_runs + it.hard_runs;
+  const easyOne = d.runs.find(r => r.avg_hr <= ceil), easyNamed = d.runs.filter(r => /easy/i.test(r.name));
+  host.innerHTML = `
+    <div class="view-head">
+      <div>
+        <div class="t-h2">${it.easy_runs} of ${it.runs_with_hr} runs was easy</div>
+        <p class="t-lead">Every run this summer, plotted by average heart rate. Easy for you means under ${ceil}, which is 75 percent of the ${it.max_hr_used} the watch has recorded as your maximum. Almost every run sits above that line, so the distance was never being built on easy running.</p>
+      </div>
+      <div class="legend" style="flex:none"><span><i style="background:var(--ok)"></i>Easy, ${ceil} and under</span><span><i style="background:var(--warn)"></i>Moderate, ${ceil + 1} to ${hardFrom - 1}</span><span><i style="background:var(--stop)"></i>Hard, ${hardFrom} and over</span><span><i style="background:var(--t3);border-radius:50%;width:6px;height:6px"></i> to <i style="background:var(--t3);border-radius:50%;width:14px;height:14px"></i> distance</span></div>
+    </div>
+    <div class="grid">
+      <div class="c8"><div class="card raised">
+        <div class="card-h"><div class="t">${icon('intensity')}Average heart rate of every run</div><div class="m"><span>bpm against date, dot size is distance</span><span class="kbd">hover a run</span></div></div>
+        <div class="card-b" style="padding:12px 12px 8px"><div class="chart" id="int-chart"></div></div>
+      </div></div>
+      <div class="c4 stack"><div class="card">
+        <div class="card-h"><div class="t">Split of ${total} runs</div><div class="m"><span class="badge stop">${esc(it.verdict)}</span></div></div>
+        <div class="card-b">
+          <div class="stackbar"><i style="width:${(it.easy_runs / total * 100).toFixed(1)}%;background:var(--ok)"></i><i style="width:${(it.moderate_runs / total * 100).toFixed(1)}%;background:var(--warn)"></i><i style="width:${(it.hard_runs / total * 100).toFixed(1)}%;background:var(--stop)"></i></div>
+          <table class="tbl" style="margin-top:8px"><thead><tr><th>Zone</th><th>Heart rate</th><th class="r">Runs</th><th class="r">Share</th></tr></thead><tbody>
+            <tr><td><span class="badge ok">Easy</span></td><td class="mono">&le; ${ceil}</td><td class="r"><b>${it.easy_runs}</b></td><td class="r mono">${f0(it.easy_share * 100)}%</td></tr>
+            <tr><td><span class="badge warn">Moderate</span></td><td class="mono">${ceil + 1} to ${hardFrom - 1}</td><td class="r"><b>${it.moderate_runs}</b></td><td class="r mono">${f0(it.moderate_runs / total * 100)}%</td></tr>
+            <tr><td><span class="badge stop">Hard</span></td><td class="mono">&ge; ${hardFrom}</td><td class="r"><b>${it.hard_runs}</b></td><td class="r mono">${f0(it.hard_runs / total * 100)}%</td></tr>
+          </tbody></table>
+          <div class="kv" style="margin-top:8px">
+            <div><span class="k">Average across all runs</span><span class="v">${it.average_hr_on_all_runs} <small>bpm</small></span></div>
+            <div><span class="k">Easy ceiling</span><span class="v">${ceil} <small>bpm, 75% of ${it.max_hr_used}</small></span></div>
+            <div><span class="k">Runs with heart rate</span><span class="v">${it.runs_with_hr} <small>of ${s.runs.length}</small></span></div>
+            ${easyOne ? `<div><span class="k">The one easy run</span><span class="v">${fmtD(easyOne.date)} <small>${f1(km(easyOne.distance_m))} km at ${easyOne.avg_hr}</small></span></div>` : ''}
+          </div>
+        </div>
+        <div class="card-f">Runs named "Easy Run" on the watch averaged ${f0(easyNamed.reduce((a, r) => a + r.avg_hr, 0) / easyNamed.length)} bpm. The name on the watch and the heart rate on the watch do not agree.</div>
+      </div></div>
+      <div class="c12"><div class="card">
+        <div class="card-h"><div class="t">All ${s.runs.length} runs</div><div class="m"><div class="seg" id="run-sort"><button data-s="newest">Newest</button><button data-s="longest">Longest</button><button data-s="hardest">Hardest</button></div></div></div>
+        <div class="card-b tight" style="overflow-x:auto"><table class="tbl" id="run-table"></table></div>
+      </div></div>
+    </div>`;
+  const drawTable = () => {
+    let rows = d.runs.slice();
+    if (runSort === 'newest') rows.reverse(); if (runSort === 'longest') rows.sort((a, b) => b.distance_m - a.distance_m); if (runSort === 'hardest') rows.sort((a, b) => b.avg_hr - a.avg_hr);
+    $$('#run-sort button').forEach(b => b.classList.toggle('on', b.dataset.s === runSort));
+    const maxKm = Math.max(...rows.map(r => r.distance_m));
+    $('#run-table').innerHTML = `<thead><tr><th>Date</th><th>Run</th><th class="r">km</th><th class="bar-cell"></th><th class="r">Time</th><th class="r">Pace</th><th class="r">Avg HR</th><th>Zone</th><th>Week</th></tr></thead><tbody>${rows.map(r => { const z = zoneOf(r.avg_hr, ceil), wk = weekOf(r.date); return `<tr><td>${fmtDL(r.date)}</td><td>${esc(r.name)}</td><td class="r"><b>${f1(km(r.distance_m))}</b></td><td class="bar-cell"><div class="mini-bar"><i class="${ZONE[z].c}" style="width:${(r.distance_m / maxKm * 100).toFixed(1)}%"></i></div></td><td class="r mono">${dur(r.duration_s)}</td><td class="r mono">${pace(r.distance_m, r.duration_s)} /km</td><td class="r"><b class="${ZONE[z].c}">${r.avg_hr}</b></td><td><span class="badge ${ZONE[z].c}">${ZONE[z].l}</span></td><td>${wk ? flagBadge(wk.flag, wk.km) : ''}</td></tr>`; }).join('')}</tbody>`;
+  };
+  $('#run-sort').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { runSort = b.dataset.s; drawTable(); } });
+  drawTable();
+  const draw = () => drawIntensityChart($('#int-chart'), s, d); chartRenderers.push(draw); draw();
+}
+
+function drawIntensityChart(host, s, d) {
+  const W = Math.max(host.clientWidth, 520), H = 380, m = {l: 44, r: 64, t: 18, b: 34};
+  const plotW = W - m.l - m.r, plotH = H - m.t - m.b, plotB = m.t + plotH;
+  const ceil = s.intensity.easy_hr_ceiling, hardFrom = ceil + 22;
+  const x0 = addDays(d.runs[0].date, -4), x1 = addDays(d.runs[d.runs.length - 1].date, 4);
+  const x = v => m.l + daysBetween(x0, v) / daysBetween(x0, x1) * plotW;
+  const y = lin(110, 175, plotB, m.t), rScale = v => 3 + Math.sqrt(km(v)) * 2.4;
+  const svg = S('svg', {width: W, height: H, viewBox: `0 0 ${W} ${H}`}), g = S('g'); svg.appendChild(g);
+  g.appendChild(S('rect', {x: m.l, y: y(ceil), width: plotW, height: plotB - y(ceil), fill: 'var(--ok-bg)'}));
+  g.appendChild(S('rect', {x: m.l, y: y(hardFrom), width: plotW, height: y(ceil) - y(hardFrom), fill: 'var(--warn-bg)', opacity: 0.5}));
+  g.appendChild(S('rect', {x: m.l, y: m.t, width: plotW, height: y(hardFrom) - m.t, fill: 'var(--stop-bg)', opacity: 0.6}));
+  for (let v = 110; v <= 175; v += 10) { g.appendChild(S('line', {x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: 'var(--grid)'})); g.appendChild(T(m.l - 8, y(v) + 4, v, {'text-anchor': 'end', 'font-family': 'var(--mono)'})); }
+  g.appendChild(T(m.l - 8, m.t - 6, 'bpm', {'text-anchor': 'end', 'font-weight': 600}));
+  ['2026-07-01', '2026-08-01', '2026-09-01'].forEach(dt => { if (dt < x0 || dt > x1) return; g.appendChild(S('line', {x1: x(dt), x2: x(dt), y1: m.t, y2: plotB, stroke: 'var(--grid-2)'})); g.appendChild(T(x(dt) + 4, plotB + 16, MONTHS[pd(dt).getUTCMonth()], {'font-weight': 600, fill: 'var(--t2)'})); });
+  ['2026-07-15', '2026-08-15'].forEach(dt => g.appendChild(T(x(dt), plotB + 16, '15', {'text-anchor': 'middle'})));
+  g.appendChild(S('line', {x1: m.l, x2: W - m.r, y1: plotB, y2: plotB, stroke: 'var(--line-3)'}));
+  g.appendChild(S('line', {x1: m.l, x2: W - m.r, y1: y(ceil), y2: y(ceil), stroke: 'var(--ok)', 'stroke-width': 1.6, 'stroke-dasharray': '5 4'}));
+  const lab = `easy ceiling ${ceil}`;
+  g.appendChild(S('rect', {x: m.l + 6, y: y(ceil) - 20, width: lab.length * 6.4 + 12, height: 16, rx: 3, fill: 'var(--ok)'}));
+  g.appendChild(T(m.l + 12, y(ceil) - 8.5, lab, {fill: '#fff', 'font-weight': 700, 'font-size': 10.5}));
+  g.appendChild(S('line', {x1: m.l, x2: W - m.r, y1: y(hardFrom), y2: y(hardFrom), stroke: 'var(--stop)', 'stroke-dasharray': '2 4', opacity: 0.8}));
+  g.appendChild(T(m.l + 6, y(hardFrom) - 5, `hard from ${hardFrom}`, {fill: 'var(--stop)', 'font-weight': 600}));
+  g.appendChild(S('line', {x1: x(d.stopDate), x2: x(d.stopDate), y1: m.t, y2: plotB, stroke: 'var(--stop)', 'stroke-dasharray': '3 3'}));
+  g.appendChild(T(x(d.stopDate) - 6, m.t + 10, 'stopped, ' + fmtD(d.stopDate), {'text-anchor': 'end', fill: 'var(--stop)', 'font-weight': 600}));
+  const sx = W - m.r + 22;
+  g.appendChild(S('line', {x1: sx, x2: sx, y1: m.t, y2: plotB, stroke: 'var(--line-2)'}));
+  const cnt = {easy: 0, moderate: 0, hard: 0};
+  d.runs.forEach(r => { const z = zoneOf(r.avg_hr, ceil); cnt[z]++; g.appendChild(S('line', {x1: sx - 6, x2: sx + 6, y1: y(r.avg_hr), y2: y(r.avg_hr), stroke: `var(--${ZONE[z].c})`, 'stroke-width': 1.6, opacity: 0.9})); });
+  g.appendChild(T(sx, plotB + 16, 'all', {'text-anchor': 'middle'}));
+  g.appendChild(T(sx + 12, (y(ceil) + plotB) / 2 + 4, cnt.easy, {fill: 'var(--ok)', 'font-weight': 600, 'font-family': 'var(--mono)'}));
+  g.appendChild(T(sx + 12, (y(ceil) + y(hardFrom)) / 2 + 4, cnt.moderate, {fill: 'var(--warn)', 'font-weight': 600, 'font-family': 'var(--mono)'}));
+  g.appendChild(T(sx + 12, (y(hardFrom) + m.t) / 2 + 4, cnt.hard, {fill: 'var(--stop)', 'font-weight': 600, 'font-family': 'var(--mono)'}));
+  d.runs.forEach(r => {
+    const z = zoneOf(r.avg_hr, ceil);
+    const c = S('circle', {cx: x(r.date), cy: y(r.avg_hr), r: rScale(r.distance_m), fill: `var(--${ZONE[z].c})`, 'fill-opacity': 0.85, stroke: 'var(--bg)', 'stroke-width': 1.5, style: 'cursor:crosshair'});
+    c.addEventListener('pointerenter', () => c.setAttribute('fill-opacity', 1)); c.addEventListener('pointerleave', () => c.setAttribute('fill-opacity', 0.85));
+    bindTip(c, () => `<div class="th"><span>${fmtDL(r.date)}</span><span class="badge ${ZONE[z].c}">${ZONE[z].l}</span></div><div class="tr"><span>${esc(r.name)}</span></div><div class="tr"><span>Distance</span><b>${f1(km(r.distance_m))} km</b></div><div class="tr"><span>Time</span><b>${dur(r.duration_s)}</b></div><div class="tr"><span>Pace</span><b>${pace(r.distance_m, r.duration_s)} /km</b></div><div class="tr"><span>Average heart rate</span><b>${r.avg_hr} bpm</b></div><div class="note">${r.avg_hr > ceil ? `${r.avg_hr - ceil} above the easy ceiling` : `${ceil - r.avg_hr} under the easy ceiling`}</div>`);
+    g.appendChild(c);
+  });
+  host.innerHTML = ''; host.appendChild(svg);
+}
+
+/* ============================== FORM ============================== */
+function renderForm() {
+  const s = app.state, f = s.form, host = $('#view-form');
+  const first = f.cadence[0], last = f.cadence[f.cadence.length - 1], peak = f.cadence.reduce((a, b) => b.value > a.value ? b : a, f.cadence[0]);
+  const rows = FORM_RUNS;
+  const spark = (vals, cls) => { const w = 84, h = 22, mn = Math.min(...vals), mx = Math.max(...vals), pad = (mx - mn) || 1; const pts = vals.map((v, i) => [4 + i / (vals.length - 1) * (w - 8), h - 4 - (v - mn) / pad * (h - 8)]); return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><path d="${pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ')}" fill="none" stroke="var(--${cls})" stroke-width="1.6" stroke-linejoin="round"/>${pts.map(p => `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2" fill="var(--${cls})"/>`).join('')}</svg>`; };
+  const strideVals = rows.map(r => r.stride_cm), paceVals = rows.map(r => 1000 / r.speed_mps), hrVals = rows.map(r => r.avg_hr);
+  host.innerHTML = `
+    <div class="view-head">
+      <div>
+        <div class="t-h2">Cadence went up by ${f.cadence_change.toFixed(1)} steps a minute</div>
+        <p class="t-lead">Across the five runs at a matched pace, cadence rose from ${f0(first.value)} on ${fmtD(first.date)} to ${f0(peak.value)} on ${fmtD(peak.date)} and held near there. That is the one direction in the record. Stride length, pace and heart rate at that pace stayed where they were.</p>
+      </div>
+      <div class="legend" style="flex:none"><span><i class="line" style="background:var(--t1)"></i>Cadence, steps per minute</span><span><i class="dash" style="color:var(--accent)"></i>Straight line through the five</span></div>
+    </div>
+    <div class="grid">
+      <div class="c8"><div class="card raised">
+        <div class="card-h"><div class="t">${icon('form')}Cadence on comparable runs</div><div class="m"><span>Pace between ${paceFromSpeed(Math.max(...rows.map(r => r.speed_mps)))} and ${paceFromSpeed(Math.min(...rows.map(r => r.speed_mps)))} per km</span><span class="badge">${esc(f.verdict)}</span></div></div>
+        <div class="card-b" style="padding:12px 12px 8px"><div class="chart" id="cad-chart"></div></div>
+        <div class="card-f">Only ${rows.length} of ${s.runs.length} runs carry stride measurements, and they were all run at close to the same pace, which is the only fair way to compare them. Five points is a small sample, so treat the direction as early.</div>
+      </div></div>
+      <div class="c4 stack">
+        <div class="card">
+          <div class="card-h"><div class="t">Compared at the same pace</div><div class="m">${fmtD(first.date)} to ${fmtD(last.date)}</div></div>
+          <div class="card-b tight"><table class="tbl">
+            <thead><tr><th>Measure</th><th class="r">First</th><th class="r">Last</th><th></th><th>Read</th></tr></thead>
+            <tbody>
+              <tr><td>Cadence</td><td class="r mono">${f0(first.value)}</td><td class="r"><b>${f0(last.value)}</b> <span class="t-meta">spm</span></td><td>${spark(f.cadence.map(c => c.value), 'ok')}</td><td><span class="badge ok">Up</span></td></tr>
+              <tr><td>Stride length</td><td class="r mono">${f0(strideVals[0])}</td><td class="r"><b>${f0(strideVals[strideVals.length - 1])}</b> <span class="t-meta">cm</span></td><td>${spark(strideVals, 't3')}</td><td><span class="badge">Flat</span></td></tr>
+              <tr><td>Pace</td><td class="r mono">${paceFromSpeed(rows[0].speed_mps)}</td><td class="r"><b>${paceFromSpeed(rows[rows.length - 1].speed_mps)}</b> <span class="t-meta">/km</span></td><td>${spark(paceVals, 't3')}</td><td><span class="badge">Flat</span></td></tr>
+              <tr><td>Heart rate at that pace</td><td class="r mono">${hrVals[0]}</td><td class="r"><b>${hrVals[hrVals.length - 1]}</b> <span class="t-meta">bpm</span></td><td>${spark(hrVals, 't3')}</td><td><span class="badge">Flat</span></td></tr>
+            </tbody>
+          </table></div>
+          <div class="card-f">Flat means the change from first to last is inside the spread between runs. Grutto reports it that way rather than reading a direction into it.</div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div class="t">What this changes</div></div>
+          <div class="card-b">
+            <p class="dim" style="margin:0 0 10px;font-size:13px;line-height:1.5">Higher cadence at the same pace means shorter steps. Nothing else about the stride moved, so this is a small change, and it is the only one.</p>
+            <p class="dim" style="margin:0;font-size:13px;line-height:1.5">Grutto does not read anything about the feet from these numbers. They say how you ran. A physio says how you are.</p>
+          </div>
+        </div>
+      </div>
+      <div class="c12"><div class="card">
+        <div class="card-h"><div class="t">The five runs behind the chart</div></div>
+        <div class="card-b tight" style="overflow-x:auto"><table class="tbl">
+          <thead><tr><th>Date</th><th>Run</th><th class="r">km</th><th class="r">Pace</th><th class="r">Avg HR</th><th class="r">Cadence</th><th class="r">Stride</th><th>Week</th></tr></thead>
+          <tbody>${rows.map(r => { const run = s.runs.find(x => x.date === r.date) || {name: ''}, wk = weekOf(r.date); return `<tr><td>${fmtDL(r.date)}</td><td>${esc(run.name)}</td><td class="r"><b>${f1(r.km)}</b></td><td class="r mono">${paceFromSpeed(r.speed_mps)} /km</td><td class="r">${r.avg_hr}</td><td class="r"><b>${r.cadence.toFixed(1)}</b> <span class="t-meta">spm</span></td><td class="r">${r.stride_cm.toFixed(1)} <span class="t-meta">cm</span></td><td>${wk ? flagBadge(wk.flag, wk.km) : ''}</td></tr>`; }).join('')}</tbody>
+        </table></div>
+      </div></div>
+    </div>`;
+  const draw = () => drawCadenceChart($('#cad-chart'), s); chartRenderers.push(draw); draw();
+}
+
+function drawCadenceChart(host, s) {
+  const W = Math.max(host.clientWidth, 520), H = 300, m = {l: 44, r: 24, t: 22, b: 34};
+  const plotW = W - m.l - m.r, plotH = H - m.t - m.b, plotB = m.t + plotH, pts = s.form.cadence;
+  const x0 = addDays(pts[0].date, -6), x1 = addDays(pts[pts.length - 1].date, 6);
+  const x = v => m.l + daysBetween(x0, v) / daysBetween(x0, x1) * plotW, yMin = 150, yMax = 165, y = lin(yMin, yMax, plotB, m.t);
+  const svg = S('svg', {width: W, height: H, viewBox: `0 0 ${W} ${H}`}), g = S('g'); svg.appendChild(g);
+  for (let v = yMin; v <= yMax; v += 5) { g.appendChild(S('line', {x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: v === yMin ? 'var(--line-3)' : 'var(--grid)'})); g.appendChild(T(m.l - 8, y(v) + 4, v, {'text-anchor': 'end', 'font-family': 'var(--mono)'})); }
+  for (let v = yMin + 2.5; v < yMax; v += 5) g.appendChild(S('line', {x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: 'var(--grid)', 'stroke-dasharray': '2 4'}));
+  g.appendChild(T(m.l - 8, m.t - 8, 'spm', {'text-anchor': 'end', 'font-weight': 600}));
+  ['2026-08-01', '2026-09-01'].forEach(dt => { g.appendChild(S('line', {x1: x(dt), x2: x(dt), y1: m.t, y2: plotB, stroke: 'var(--grid-2)'})); g.appendChild(T(x(dt) + 4, plotB + 16, MONTHS[pd(dt).getUTCMonth()], {'font-weight': 600, fill: 'var(--t2)'})); });
+  g.appendChild(T(m.l + 4, plotB + 16, MONTHS[pd(x0).getUTCMonth()], {'font-weight': 600, fill: 'var(--t2)'}));
+  const xs = pts.map(p => daysBetween(x0, p.date)), ys = pts.map(p => p.value), mx = xs.reduce((a, b) => a + b, 0) / xs.length, my = ys.reduce((a, b) => a + b, 0) / ys.length;
+  const slope = xs.reduce((a, xv, i) => a + (xv - mx) * (ys[i] - my), 0) / xs.reduce((a, xv) => a + (xv - mx) ** 2, 0), tl = xv => my + slope * (xv - mx);
+  g.appendChild(S('line', {x1: x(pts[0].date), x2: x(pts[pts.length - 1].date), y1: y(tl(xs[0])), y2: y(tl(xs[xs.length - 1])), stroke: 'var(--accent)', 'stroke-dasharray': '5 4', 'stroke-width': 1.4}));
+  const ann = `+${s.form.cadence_change.toFixed(1)} spm, ${fmtD(pts[0].date)} to ${fmtD(pts[pts.length - 1].date)}`, aw = ann.length * 6.3 + 14;
+  g.appendChild(S('rect', {x: W - m.r - aw, y: m.t - 2, width: aw, height: 18, rx: 3, fill: 'var(--accent-bg)', stroke: 'var(--accent-line)'}));
+  g.appendChild(T(W - m.r - 7, m.t + 10.5, ann, {'text-anchor': 'end', fill: 'var(--accent)', 'font-weight': 600}));
+  g.appendChild(S('path', {d: pts.map((p, i) => (i ? 'L' : 'M') + x(p.date) + ' ' + y(p.value)).join(' '), fill: 'none', stroke: 'var(--t1)', 'stroke-width': 2, 'stroke-linejoin': 'round'}));
+  pts.forEach(p => {
+    const fr = FORM_RUNS.find(r => r.date === p.date);
+    const c = S('circle', {cx: x(p.date), cy: y(p.value), r: 5, fill: 'var(--bg)', stroke: 'var(--t1)', 'stroke-width': 2, style: 'cursor:crosshair'});
+    g.appendChild(T(x(p.date), y(p.value) - 12, p.value.toFixed(1), {'text-anchor': 'middle', fill: 'var(--t1)', 'font-weight': 600}));
+    g.appendChild(T(x(p.date), plotB + 30, fmtD(p.date), {'text-anchor': 'middle'}));
+    bindTip(c, () => `<div class="th"><span>${fmtDL(p.date)}</span></div><div class="tr"><span>Cadence</span><b>${p.value.toFixed(1)} spm</b></div>${fr ? `<div class="tr"><span>Pace</span><b>${paceFromSpeed(fr.speed_mps)} /km</b></div><div class="tr"><span>Heart rate</span><b>${fr.avg_hr} bpm</b></div><div class="tr"><span>Distance</span><b>${f1(fr.km)} km</b></div>` : ''}`);
+    g.appendChild(c);
+  });
+  host.innerHTML = ''; host.appendChild(svg);
+}
+
+/* ============================== PLAN ============================== */
+const planForm = {question: 'Plan my week. I have a half marathon in two weeks and want a big week.', mode: 'today', asOf: '2026-08-24', pain: '', _init: false};
+function renderPlan() {
+  const s = app.state, r = s.runner, host = $('#view-plan');
+  if (!planForm._init) { planForm.pain = r.in_pain ? r.pain_area : ''; planForm._init = true; }
+  const history = store('runs') || [];
+  host.innerHTML = `
+    <div class="view-head"><div>
+      <div class="t-h2">Ask the coach for a week</div>
+      <p class="t-lead">Six agents answer in turn. The physio goes first and can stop the week before it is written. If it goes ahead, the plan writer proposes a week and the safety officer can refuse it, in which case the week is rewritten before you see it. Mark any answer up or down and it goes to the tuning log with that agent's exact words.</p>
+    </div></div>
+    <div class="grid">
+      <div class="c4 stack">
+        <div class="card">
+          <div class="card-h"><div class="t">${icon('plan')}Question</div><div class="m mono">POST /api/plan</div></div>
+          <div class="card-b stack" style="gap:14px">
+            <div class="field"><label>Ask</label><textarea class="input" id="pf-q">${esc(planForm.question)}</textarea></div>
+            <div class="field">
+              <label>As of</label>
+              <div class="seg" id="pf-mode"><button data-m="today" class="${planForm.mode === 'today' ? 'on' : ''}">Today, ${fmtD(TODAY)}</button><button data-m="past" class="${planForm.mode === 'past' ? 'on' : ''}">${icon('rewind')}A past date</button></div>
+              <div id="pf-asof-wrap" style="display:${planForm.mode === 'past' ? 'block' : 'none'}">
+                <input type="date" class="input" id="pf-asof" value="${planForm.asOf}" min="${s.weeks[1].week_starting}" max="${TODAY}">
+                <div class="help" style="margin-top:6px">Grutto only sees runs before this date. Pick the Monday of a marked week to hear what it would have said then.</div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${s.weeks.filter(w => w.flag === 'high').map(w => `<button class="chip" data-asof="${w.week_starting}">${fmtD(w.week_starting)} <span class="t-meta">${w.ratio.toFixed(1)}&times;</span></button>`).join('')}</div>
+              </div>
+            </div>
+            <div class="field">
+              <label>Pain</label>
+              <div style="display:flex;gap:6px;flex-wrap:wrap" id="pf-pain">
+                <button class="chip ${planForm.pain === '' ? 'sel' : ''}" data-p="">${icon('check')}None</button>
+                <button class="chip stop ${planForm.pain === 'both feet' ? 'sel' : ''}" data-p="both feet">${icon('pain')}Both feet</button>
+                <button class="chip ${planForm.pain && planForm.pain !== 'both feet' ? 'sel' : ''}" data-p="other">Somewhere else</button>
+              </div>
+              <input class="input" id="pf-pain-text" placeholder="Where does it hurt" value="${esc(planForm.pain && planForm.pain !== 'both feet' && planForm.pain !== 'other' ? planForm.pain : '')}" style="display:${planForm.pain && planForm.pain !== 'both feet' ? 'block' : 'none'};margin-top:6px">
+              <div class="help">Reported pain goes to the physio first. While it is set, no running week gets written.</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button class="btn primary" id="pf-run">${icon('play')}Run the coach</button><span class="help">One to two minutes</span></div>
+          </div>
+          <div class="card-f">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px"><span>Server ${app.source === 'live' ? 'connected' : 'not reachable'}</span><span class="t-cap" style="font-size:10px">Recorded runs</span></div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm" data-replay="refused">${icon('rewind')}24 Aug, refused then approved</button><button class="btn sm" data-replay="stopped">${icon('physio')}Today, physio stops it</button></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div class="t">Earlier runs</div><div class="m">${history.length ? history.length + ' kept here' : 'none yet'}</div></div>
+          <div class="card-b tight">${history.length ? `<table class="tbl"><tbody>${history.slice(0, 8).map(h => `<tr><td class="mono">${esc(h.run_id)}</td><td class="k">${h.as_of ? 'as of ' + fmtD(h.as_of) : 'today'}</td><td class="r">${h.outcome === 'approved' ? '<span class="badge ok">Approved</span>' : h.outcome === 'stopped' ? '<span class="badge stop">No week</span>' : '<span class="badge warn">Refused</span>'}</td></tr>`).join('')}</tbody></table>` : '<div class="help" style="padding:14px 16px">Run ids are kept in this browser so feedback from a demo can be matched to the log.</div>'}</div>
+        </div>
+      </div>
+      <div class="c8 stack" id="plan-out"></div>
+    </div>`;
+  $('#pf-q').addEventListener('input', e => planForm.question = e.target.value);
+  $('#pf-mode').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; planForm.mode = b.dataset.m; $$('#pf-mode button').forEach(x => x.classList.toggle('on', x === b)); $('#pf-asof-wrap').style.display = planForm.mode === 'past' ? 'block' : 'none'; });
+  $('#pf-asof').addEventListener('change', e => planForm.asOf = e.target.value);
+  $$('#pf-asof-wrap .chip').forEach(c => c.addEventListener('click', () => { planForm.asOf = c.dataset.asof; $('#pf-asof').value = c.dataset.asof; }));
+  $('#pf-pain').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    $$('#pf-pain .chip').forEach(x => x.classList.toggle('sel', x === b));
+    const txt = $('#pf-pain-text');
+    if (b.dataset.p === 'other') { txt.style.display = 'block'; txt.focus(); planForm.pain = txt.value || 'other'; } else { txt.style.display = 'none'; planForm.pain = b.dataset.p; }
+  });
+  $('#pf-pain-text').addEventListener('input', e => planForm.pain = e.target.value || 'other');
+  $('#pf-run').addEventListener('click', runPlan);
+  $$('[data-replay]').forEach(b => b.addEventListener('click', () => { const p = RECORDED_PLANS[b.dataset.replay]; showPlanResult(p, p.request, true); }));
+  if (app.plan) showPlanResult(app.plan.result, app.plan.request, app.plan.replay, true);
+  else if (app.planRunning) renderPlanLoading(app.planRunning);
+  else renderPlanEmpty();
+}
+
+function renderPlanEmpty() {
+  $('#plan-out').innerHTML = `
+    <div class="card raised" style="padding:0;overflow:hidden">
+      <div class="empty">
+        ${photo('hero.png')}
+        <div class="ec">
+          <div class="et">No week asked for yet</div>
+          <p>Rewind to 24 August to watch Grutto refuse the 32 km week that ran nine days before the pain started. Ask about today and it will not write one at all.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-replay="refused">${icon('rewind')}Replay 24 August</button><button class="btn" data-replay="stopped">${icon('physio')}Replay today</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="card"><div class="card-b tight"><table class="tbl"><thead><tr><th>Agent</th><th>Job</th><th class="r">Can stop the week</th></tr></thead><tbody>${AGENT_ORDER.map(a => `<tr><td><span class="mono">${a}</span></td><td class="k">${AGENTS[a].blurb}</td><td class="r">${a === 'physio' || a === 'safety_officer' ? '<span class="badge stop">Yes</span>' : '<span class="t-meta">no</span>'}</td></tr>`).join('')}</tbody></table></div></div>`;
+  $$('#plan-out [data-replay]').forEach(b => b.addEventListener('click', () => { const p = RECORDED_PLANS[b.dataset.replay]; showPlanResult(p, p.request, true); }));
+}
+
+const EXPECTED = [
+  {agent: 'physio', at: 0, note: 'Reading the pain report'},
+  {agent: 'load_analyst', at: 10, note: 'Adding up every week'},
+  {agent: 'form_analyst', at: 26, note: 'Comparing runs at a matched pace'},
+  {agent: 'plan_writer', at: 42, note: 'Writing a first draft'},
+  {agent: 'safety_officer', at: 60, note: 'Checking the draft against the ceiling'},
+  {agent: 'publisher', at: 85, note: 'Waiting for an approved week'}
+];
+function renderPlanLoading(run) {
+  $('#plan-out').innerHTML = `
+    <div class="card raised">
+      <div class="card-h"><div class="t"><span class="spin"></span>Coach is working</div><div class="m"><span id="pl-elapsed" class="mono">0:00</span><span>${run.request.as_of ? 'as of ' + fmtD(run.request.as_of) : 'today'}${run.request.pain ? ', pain: ' + esc(run.request.pain) : ''}</span></div></div>
+      <div class="card-b" style="padding:12px 16px 8px"><div class="pipe" id="pipe">${AGENT_ORDER.map(a => `<div class="pipe-node" data-a="${a}"><div class="pn">${icon(AGENTS[a].icon)}</div><div class="pl">${a}</div><div class="ps">queued</div></div>`).join('')}</div></div>
+      <div class="card-f">The order shown is the usual one and the timing is an estimate. The physio can end the run after three agents. The safety officer can send the plan writer back, which adds a loop and about half a minute.</div>
+    </div>
+    <div id="pl-cards" class="stack"></div>`;
+  const tick = () => {
+    if (app.planRunning !== run) return;
+    const el = (Date.now() - run.t0) / 1000, e = $('#pl-elapsed'); if (e) e.textContent = `${Math.floor(el / 60)}:${String(Math.floor(el % 60)).padStart(2, '0')}`;
+    EXPECTED.forEach((x, i) => {
+      const node = $(`#pipe [data-a="${x.agent}"]`); if (!node) return;
+      const next = EXPECTED[i + 1], started = el >= x.at, finished = next ? el >= next.at : false;
+      node.classList.toggle('working', started && !finished); node.classList.toggle('done', finished);
+      $('.ps', node).textContent = finished ? 'answered' : started ? x.note : 'queued';
+      const cardsHost = $('#pl-cards');
+      if (started && !finished && cardsHost && !$(`#skel-${x.agent}`)) cardsHost.insertAdjacentHTML('beforeend', `<div class="card agent" id="skel-${x.agent}"><div class="card-h"><div class="who"><div class="glyph warn">${icon(AGENTS[x.agent].icon)}</div><div><div class="aname">${AGENTS[x.agent].label}</div><div class="aid">${x.agent}</div></div></div><div class="m"><span class="spin"></span>${x.note}</div></div><div class="card-b"><div class="skel skel-line" style="width:92%"></div><div class="skel skel-line" style="width:78%"></div><div class="skel skel-line" style="width:85%"></div><div class="skel skel-line" style="width:40%"></div></div></div>`);
+      if (finished) { const sk = $(`#skel-${x.agent}`); if (sk && !sk.dataset.done) { sk.dataset.done = 1; $('.card-b', sk).innerHTML = '<div class="help">Answered. The full answer appears when the run completes.</div>'; $('.m', sk).innerHTML = '<span class="badge">done</span>'; $('.glyph', sk).className = 'glyph'; } }
+    });
+    setTimeout(tick, 500);
+  };
+  tick();
+}
+
+async function runPlan() {
+  if (app.planRunning) return;
+  const request = {question: planForm.question.trim() || 'Plan my week.', as_of: planForm.mode === 'past' ? planForm.asOf : null, pain: planForm.pain === 'other' ? '' : planForm.pain};
+  const run = {request, t0: Date.now()}; app.planRunning = run; app.plan = null; $('#pf-run').disabled = true;
+  renderPlanLoading(run);
+  try {
+    const res = await fetchJSON('/api/plan', {method: 'POST', body: JSON.stringify(request)}, 240000);
+    if (!res || !res.transcript) throw new Error('bad shape');
+    app.planRunning = null;
+    const hist = store('runs') || []; hist.unshift({run_id: res.run_id, as_of: request.as_of, outcome: outcomeOf(res), at: new Date().toISOString()}); store('runs', hist.slice(0, 30));
+    showPlanResult(res, request, false);
+  } catch (e) {
+    app.planRunning = null;
+    $('#plan-out').innerHTML = `<div class="card"><div class="card-b"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span class="badge stop">Could not run</span><span class="t-meta">${esc(e.message || e)}</span></div><p class="dim" style="margin:0 0 12px;font-size:13px">The server at <span class="mono">${esc(API_BASE || location.origin)}/api/plan</span> did not answer. Start it and try again, or replay a recorded run to see the loop.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="pl-retry">${icon('refresh')}Try again</button><button class="btn" data-replay="refused">${icon('rewind')}Replay 24 August</button><button class="btn" data-replay="stopped">${icon('physio')}Replay today</button></div></div></div>`;
+    $('#pl-retry').addEventListener('click', runPlan);
+    $$('#plan-out [data-replay]').forEach(b => b.addEventListener('click', () => { const p = RECORDED_PLANS[b.dataset.replay]; showPlanResult(p, p.request, true); }));
+  } finally { const b = $('#pf-run'); if (b) b.disabled = false; }
+}
+
+function physioStopped(res) { const p = res.transcript.find(t => t.agent === 'physio'); return !!p && /do not run|no running|stop/i.test(p.answer) && !res.transcript.some(t => t.agent === 'plan_writer'); }
+function outcomeOf(res) { return physioStopped(res) ? 'stopped' : res.gate && res.gate.approved ? 'approved' : 'refused'; }
+function loopFromTranscript(tr) {
+  const steps = []; let draft = 0;
+  tr.forEach((t, i) => {
+    if (t.agent === 'physio') steps.push({kind: /do not run|no running|stop/i.test(t.answer) ? 'stopped' : 'cleared', i, t, draft});
+    if (t.agent === 'plan_writer') { draft++; steps.push({kind: draft === 1 ? 'proposed' : 'rewritten', i, t, draft}); }
+    if (t.agent === 'safety_officer') steps.push({kind: /^\s*REJECT/i.test(t.answer) ? 'refused' : 'approved', i, t, draft});
+    if (t.agent === 'publisher') steps.push({kind: 'published', i, t, draft});
+  });
+  return steps;
+}
+function summarise(text, n = 150) { const s = text.replace(/\s+/g, ' ').trim(); return s.length > n ? s.slice(0, n).replace(/\s\S*$/, '') + '…' : s; }
+function stripVerdict(a) { return a.replace(/^\s*(REJECTED|APPROVED|DO NOT RUN|STOP)\.?\s*/i, ''); }
+
+function showPlanResult(res, request, replay, instant = false) {
+  app.plan = {result: res, request, replay};
+  const s = app.state, d = derived(s), out = $('#plan-out');
+  const stopped = physioStopped(res), loop = loopFromTranscript(res.transcript);
+  const refusals = loop.filter(x => x.kind === 'refused').length, gateOk = !stopped && res.gate && res.gate.approved;
+  const totalKm = (res.plan || []).reduce((a, p) => a + (p.distance_km || 0), 0), asOf = request.as_of;
+  const actual = asOf ? s.weeks.find(w => asOf >= w.week_starting && asOf <= addDays(w.week_starting, 6)) : null;
+  const stagger = instant ? 0 : 320;
+  const status = {};
+  res.transcript.forEach(t => { if (t.agent === 'physio') status.physio = /do not run|no running|stop/i.test(t.answer) ? 'stopped' : 'done'; else if (t.agent === 'safety_officer') status.safety_officer = /^\s*REJECT/i.test(t.answer) ? 'refused' : 'approved'; else status[t.agent] = 'done'; });
+  const nodeText = a => status[a] === 'stopped' ? 'stopped the week' : status[a] === 'refused' ? 'refused a draft' : status[a] === 'approved' ? 'approved' : status[a] ? (a === 'plan_writer' && refusals ? `${refusals + 1} drafts` : 'answered') : stopped ? 'not asked' : 'not reached';
+  const nodeIcon = a => status[a] === 'stopped' ? 'hand' : status[a] === 'refused' ? 'x' : status[a] === 'approved' ? 'check' : status[a] ? 'check' : 'lock';
+  const physioT = res.transcript.find(t => t.agent === 'physio');
+
+  out.innerHTML = `
+    <div class="card raised">
+      <div class="card-h">
+        <div class="t">${stopped ? '<span class="badge stop"><span class="dot"></span>No week written</span>' : gateOk ? '<span class="badge ok"><span class="dot"></span>Week approved</span>' : '<span class="badge warn"><span class="dot"></span>No approved week</span>'}<span class="t-meta">${replay ? 'recorded run' : 'live run'}</span></div>
+        <div class="m"><span class="mono">${esc(res.run_id)}</span><span>${asOf ? 'as of ' + fmtD(asOf) : 'today'}</span>${request.pain ? `<span class="badge stop">pain: ${esc(request.pain)}</span>` : ''}</div>
+      </div>
+      <div class="card-b" style="padding:12px 16px 8px"><div class="pipe">${AGENT_ORDER.map(a => `<div class="pipe-node ${status[a] || (stopped ? 'skipped' : '')} ${a === 'plan_writer' && refusals ? 'loop' : ''}"><div class="pn">${icon(nodeIcon(a))}</div><div class="pl">${a}</div><div class="ps">${nodeText(a)}</div></div>`).join('')}</div></div>
+      <div class="card-f">${stopped ? `The physio ended the run after ${res.transcript.length} agents. The plan writer and safety officer were not asked, so there is no draft and no verdict to show. ` : res.gate ? `${res.gate.attempts} ${res.gate.attempts === 1 ? 'attempt' : 'attempts'}, ${res.gate.rejections.length} ${res.gate.rejections.length === 1 ? 'refusal' : 'refusals'}. ` : ''}${esc(request.question)}</div>
+    </div>
+    <div class="grid">
+      <div class="c7 stack" id="agent-cards"></div>
+      <div class="c5 stack">
+        ${stopped ? `
+        <div class="card" style="border-color:var(--stop-line)">
+          <div class="card-h"><div class="t">${icon('hand')}Why there is no week</div><div class="m"><span class="badge stop">physio</span></div></div>
+          <div class="card-b">
+            <div class="rail">
+              <div class="rail-step stopped"><div class="rail-node">${icon('hand')}</div><div><div class="tt">Stopped before writing</div><div class="dd">${esc(summarise(stripVerdict(physioT.answer), 230))}</div></div><div class="rv">0 km<small>this week</small></div></div>
+              ${res.transcript.filter(t => t.agent !== 'physio').map(t => `<div class="rail-step done"><div class="rail-node">${icon(AGENTS[t.agent] ? AGENTS[t.agent].icon : 'coach')}</div><div><div class="tt">${AGENTS[t.agent] ? AGENTS[t.agent].label : esc(t.agent)} <span class="t-meta">noted for the return</span></div><div class="dd">${esc(summarise(t.answer, 140))}</div></div><div class="rv"></div></div>`).join('')}
+              <div class="rail-step locked"><div class="rail-node">${icon('lock')}</div><div><div class="tt">Nothing drafted</div><div class="dd">Grutto does not write a week in order to refuse it. The plan writer and safety officer wait until the physio clears the runner.</div></div><div class="rv"></div></div>
+            </div>
+          </div>
+          <div class="card-f">Ask again once a physio has seen the feet and two days of walking have gone by without pain.</div>
+        </div>
+        <div class="card">
+          <div class="card-h"><div class="t">${icon('walk')}What opens next</div><div class="m"><a href="#today" style="color:var(--t2)">Full ladder on Today</a></div></div>
+          <div class="card-b"><div class="noweek">
+            <div><div class="n">Step 1</div><div class="tt">Physio</div><div class="dd">Feet looked at before any running.</div></div>
+            <div><div class="n">Step 2</div><div class="tt">Two walks</div><div class="dd">Thirty minutes each, no pain during or after.</div></div>
+            <div><div class="n">Step 3</div><div class="tt">First run</div><div class="dd">Walk and run, 3 km at most, under ${s.intensity.easy_hr_ceiling}.</div></div>
+          </div>
+          <div class="hr"></div>
+          <div class="kv">
+            <div><span class="k">First week back, at most</span><span class="v stop">${f1(s.ceiling_km)} <small>km</small></span></div>
+            <div><span class="k">Four-week average now</span><span class="v">${f1(s.chronic_km)} <small>km</small></span></div>
+            <div><span class="k">${esc(s.runner.goal_race)}</span><span class="v">${fmtD(s.runner.goal_race_date)} <small>${esc(s.race.call)}</small></span></div>
+          </div></div>
+        </div>` : `
+        <div class="card">
+          <div class="card-h"><div class="t">${icon('shield')}How the week was written</div><div class="m">${refusals ? `${refusals} ${refusals === 1 ? 'refusal' : 'refusals'}` : 'no refusals'}</div></div>
+          <div class="card-b"><div class="rail">${loop.map(st => {
+            const cls = st.kind === 'refused' ? 'refused' : st.kind === 'approved' || st.kind === 'published' ? 'approved' : 'done';
+            const ic = {cleared: 'physio', refused: 'x', approved: 'check', published: 'send', proposed: 'pen', rewritten: 'pen'}[st.kind];
+            const title = {cleared: 'Cleared to write', proposed: 'Proposed', refused: 'Refused', rewritten: 'Rewritten', approved: 'Approved', published: 'Published'}[st.kind];
+            const kmMatch = st.t.answer.match(/(\d+(?:\.\d+)?)\s*km/);
+            return `<div class="rail-step ${cls}"><div class="rail-node">${icon(ic)}</div><div><div class="tt">${title} <span class="t-meta">${st.draft ? 'draft ' + st.draft + ', ' : ''}step ${st.i + 1}</span></div><div class="dd">${esc(summarise(stripVerdict(st.t.answer), st.kind === 'refused' ? 220 : 130))}</div></div><div class="rv">${kmMatch && st.draft && st.kind !== 'published' ? `${kmMatch[1]} km` : ''}</div></div>`;
+          }).join('')}</div></div>
+          ${res.gate && res.gate.rejections && res.gate.rejections.length ? `<div class="card-f"><b class="stop">Refused because:</b> ${res.gate.rejections.map(esc).join(' / ')}</div>` : ''}
+        </div>
+        ${actual && actual.km > 0 ? `<div class="card">
+          <div class="card-h"><div class="t">${icon('jump')}What happened that week</div><div class="m">${fmtD(actual.week_starting)}</div></div>
+          <div class="card-b">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div><div class="t-cap">Grutto wrote</div><div class="t-disp ok" style="margin-top:4px">${f0(totalKm)}<span class="t-meta" style="font-size:14px;font-weight:500;margin-left:4px">km</span></div></div>
+              <div><div class="t-cap">Actually ran</div><div class="t-disp ${actual.flag === 'high' ? 'stop' : ''}" style="margin-top:4px">${f1(actual.km)}<span class="t-meta" style="font-size:14px;font-weight:500;margin-left:4px">km</span></div></div>
+            </div>
+            <div class="ceil" style="margin-top:14px"><div class="fill" style="width:${clamp(totalKm / actual.km * 100, 0, 100).toFixed(1)}%;background:var(--ok)"></div><div class="mark" style="left:100%"></div></div>
+            <div class="ceil-lab"><span class="l">0</span><span style="left:${clamp(totalKm / actual.km * 100, 0, 100).toFixed(1)}%" class="ok">${f0(totalKm)} approved</span><span class="r stop" style="left:100%">${f1(actual.km)} ran, ${actual.ratio.toFixed(1)}&times;</span></div>
+            <p class="help" style="margin:10px 0 0">${actual.flag === 'high' ? `That week was ${actual.ratio.toFixed(1)} times the four before it and the watch scored it fine. ${daysBetween(addDays(actual.week_starting, 6), d.stopDate)} days after it ended, the running stopped with pain in ${esc(s.runner.pain_area)}.` : `That week was ${actual.ratio.toFixed(1)} times the four before it.`}</p>
+          </div>
+        </div>` : ''}`}
+      </div>
+    </div>`;
+
+  const cards = $('#agent-cards');
+  res.transcript.forEach((t, i) => {
+    setTimeout(() => {
+      const A = AGENTS[t.agent] || {label: t.agent, icon: 'coach'};
+      const st = t.agent === 'physio' ? status.physio : t.agent === 'safety_officer' ? status.safety_officer : '';
+      const badge = st === 'stopped' ? '<span class="badge stop">Do not run</span>' : st === 'refused' ? '<span class="badge stop">Refused</span>' : st === 'approved' ? '<span class="badge ok">Approved</span>' : t.agent === 'physio' ? '<span class="badge ok">Cleared</span>' : '';
+      cards.insertAdjacentHTML('beforeend', `
+        <div class="card agent" id="ag-${i}">
+          <div class="card-h">
+            <div class="who"><div class="glyph ${st === 'stopped' || st === 'refused' ? 'stop' : st === 'approved' ? 'ok' : ''}">${icon(A.icon)}</div><div><div class="aname">${A.label} ${badge}</div><div class="aid">${esc(t.agent)} <span class="t-meta">step ${i + 1}</span></div></div></div>
+            <div class="m"><button class="btn sm ghost" data-toggle="${i}">${icon('info')}What it was asked</button></div>
+          </div>
+          <div class="asked">${esc(t.question)}</div>
+          <div class="card-b"><div class="ans">${esc(t.answer)}</div></div>
+          ${feedbackBar(res.run_id, i)}
+        </div>`);
+      $(`[data-toggle="${i}"]`).addEventListener('click', () => $(`#ag-${i}`).classList.toggle('open'));
+      wireFeedback($(`#ag-${i}`), res.run_id, t.agent, i);
+      if (i === res.transcript.length - 1) setTimeout(() => {
+        cards.insertAdjacentHTML('beforeend', `
+          <div class="card agent raised" id="ag-final" style="border-color:var(--line-3)">
+            <div class="card-h"><div class="who"><div class="glyph" style="background:var(--t1);border-color:var(--t1)"><svg viewBox="0 0 24 24" style="stroke:var(--bg)">${ICONS.coach}</svg></div><div><div class="aname">Coach</div><div class="aid">coach <span class="t-meta">the note the runner reads</span></div></div></div><div class="m">${stopped ? '<span class="badge stop">No week</span>' : gateOk ? '<span class="badge ok">Approved week</span>' : '<span class="badge warn">No approved week</span>'}</div></div>
+            <div class="card-b">
+              <div class="final-note">${esc(res.final).split(/\n\s*\n/).map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('')}</div>
+              ${res.plan && res.plan.length ? `<div class="hr"></div><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px"><div class="t-cap">The week</div><div class="t-meta"><b class="dim">${f0(totalKm)} km</b> across ${res.plan.filter(p => p.distance_km > 0).length} runs</div></div><div class="plan-days">${res.plan.map(p => `<div class="plan-day ${p.distance_km > 0 ? 'run' : 'rest'}"><div class="n">${esc(p.day.slice(0, 3))}</div><div class="km">${p.distance_km > 0 ? p.distance_km : '0'}<small>km</small></div><div class="ds">${esc(p.description)}</div></div>`).join('')}</div>` : stopped ? `<div class="hr"></div><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px"><div class="t-cap">The week</div><div class="t-meta">0 km, seven days</div></div><div class="plan-days">${DOWS.map((n, k) => `<div class="plan-day rest"><div class="n">${n}</div><div class="km">0<small>km</small></div><div class="ds">${k < 2 ? 'Physio, then walk if pain free' : 'Walk if pain free'}</div></div>`).join('')}</div>` : ''}
+            </div>
+            ${feedbackBar(res.run_id, 999)}
+          </div>`);
+        wireFeedback($('#ag-final'), res.run_id, 'coach', 999);
+      }, stagger);
+    }, i * stagger);
+  });
+}
+
+function feedbackBar(runId, step) {
+  const saved = (store('fb') || {})[`${runId}:${step}`];
+  return `<div class="fb"><div class="vote"><button class="up ${saved && saved.verdict === 'good' ? 'on' : ''}" title="Good answer">${icon('up')}</button><button class="down ${saved && saved.verdict === 'bad' ? 'on' : ''}" title="Bad answer">${icon('down')}</button></div><div class="note"><input class="input" placeholder="What was wrong or right about this one" value="${esc(saved ? saved.note : '')}"></div><button class="btn sm" data-save>Save</button><span class="saved ${saved ? 'ok' : ''}">${saved ? icon('check') + 'Saved ' + saved.at : ''}</span></div>`;
+}
+function wireFeedback(card, runId, agent, step) {
+  const bar = $('.fb', card); if (!bar) return;
+  const up = $('.up', bar), down = $('.down', bar), input = $('input', bar), save = $('[data-save]', bar), status = $('.saved', bar);
+  let verdict = up.classList.contains('on') ? 'good' : down.classList.contains('on') ? 'bad' : null;
+  const post = async () => {
+    if (!verdict) { status.className = 'saved err'; status.innerHTML = icon('info') + 'Pick up or down first'; return; }
+    const body = {run_id: runId, agent, verdict, note: input.value.trim(), step};
+    status.className = 'saved'; status.innerHTML = '<span class="spin"></span>Saving';
+    try {
+      const r = await fetchJSON('/api/feedback', {method: 'POST', body: JSON.stringify(body)}, 8000);
+      if (!r || !r.ok) throw new Error('not ok');
+      const at = new Date().toTimeString().slice(0, 5);
+      status.className = 'saved ok'; status.innerHTML = icon('check') + 'Saved ' + at;
+      const fb = store('fb') || {}; fb[`${runId}:${step}`] = {verdict, note: body.note, at}; store('fb', fb);
+    } catch (e) { status.className = 'saved err'; status.innerHTML = icon('x') + 'Not saved, server down'; }
+  };
+  up.addEventListener('click', () => { verdict = 'good'; up.classList.add('on'); down.classList.remove('on'); post(); });
+  down.addEventListener('click', () => { verdict = 'bad'; down.classList.add('on'); up.classList.remove('on'); input.focus(); });
+  save.addEventListener('click', post);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') post(); });
+}
+
+/* Boot */
+buildNav();
+setTheme(new URLSearchParams(location.search).get('theme') || store('theme') || 'dark', false);
+loadState().then(() => setView(location.hash.slice(1) || 'today'));
+</script>
+</body>
+</html>
