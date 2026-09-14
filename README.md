@@ -17,11 +17,11 @@ This is a real Garmin record. Mine.
 On 31 July I ran 15.9 km. My longest run before that was 9.6 km, nine days
 earlier. That one run was 100% of my training that week.
 
-Six weeks later I stopped running with pain under both feet and have not run
-since.
+Five weeks later I stopped running with pain under both feet and have not
+run since.
 
-Here is what my watch said on the way there, on the three weeks that most
-overshot what I had been doing:
+Here is what my watch said during the three weeks that most overshot what I
+had been doing, and on the last day I ran:
 
     22 Jul   load ratio 1.1   OPTIMAL   MAINTAINING
     13 Aug   load ratio 1.4   OPTIMAL   PRODUCTIVE
@@ -117,7 +117,7 @@ is improving:
     plan_writer     -> safety_officer   REJECTED: first week back after 10 days
                                         off should be at most about 8 km
     plan_writer     -> safety_officer   APPROVED
-    publisher                           sent
+    publisher                           recorded, demo mode
 
 > Three easy runs this week, 7.5 km in total. Tuesday 2 km, Thursday 2.5 km,
 > Saturday 3 km, with rest days in between.

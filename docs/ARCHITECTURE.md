@@ -2,70 +2,81 @@
 
 ```mermaid
 flowchart TB
-    user([Runner asks for a week]) --> coach
+    user([Runner asks, or a timer fires]) --> coach
 
-    subgraph orchestration [ ]
-        coach["<b>coach</b><br/>runs the negotiation<br/>has no data tools of its own"]
+    coach["<b>coach</b><br/>runs the order of work<br/>holds no data tools"]
+
+    coach -->|1. is anything hurting?| physio
+    coach -->|2. how much, how hard?| load
+    coach -->|3. how do they move?| form
+    coach -->|4. write me a week| plan
+    coach -->|5. is this safe?| safety
+    safety -.->|REFUSED + reason| coach
+    coach -.->|6. again, here is why| plan
+    coach -->|7. publish| pub
+
+    timer([timer]) --> reviewer
+
+    subgraph specialists [Six specialists, each with its own memory]
+        physio["<b>physio</b><br/>asked first, every time<br/>can stop the week entirely"]
+        load["<b>load_analyst</b><br/>weekly distance, ramp<br/>how much is actually easy"]
+        form["<b>form_analyst</b><br/>cadence, landing, durability"]
+        plan["<b>plan_writer</b><br/>proposes the week<br/>has no data tools"]
+        safety["<b>safety_officer</b><br/>reads the numbers out<br/>of the plan, nothing more"]
+        pub["<b>publisher</b><br/>refused unless the gate agrees"]
     end
 
-    coach -->|1. what has training looked like?| load
-    coach -->|2. is their running improving?| form
-    coach -->|3. write me a week| plan
-    coach -->|4. is this safe?| safety
-    safety -.->|REJECTED + reason| coach
-    coach -.->|5. try again, here's why| plan
-    coach -->|6. publish it| pub
-
-    subgraph specialists [Five agents, each with its own memory and tools]
-        load["<b>load_analyst</b><br/>weekly distance<br/>acute:chronic ratio"]
-        form["<b>form_analyst</b><br/>ground contact, cadence<br/>decay inside a run"]
-        plan["<b>plan_writer</b><br/>proposes the week"]
-        safety["<b>safety_officer</b><br/>approves or rejects"]
-        pub["<b>publisher</b><br/>sends to the watch"]
+    subgraph unattended [Speaks without being asked]
+        reviewer["<b>reviewer</b><br/>after a run<br/>schedule.py on a timer"]
     end
 
-    load --> tools
-    form --> tools
-    plan --> tools
-    safety --> tools
-    pub --> tools
+    safety --> gate
+    pub --> gate
 
-    subgraph toolbox [Plain Python. No AI. Just sums.]
-        tools["load.py  weekly volume, workload ratio, ramp check<br/>form.py  form drift, within-run decay"]
+    subgraph code [Plain Python. No model involved.]
+        gate["<b>gate.py</b> fingerprints the approved week<br/>
+              <b>load.py</b> weekly ramp AND single run jump<br/>
+              <b>athlete.py</b> pain severity, intensity, race call<br/>
+              <b>journal.py</b> what they told us, between sessions"]
     end
 
-    tools --> src
+    gate --> src
 
     subgraph data [One interface, three ways to get data]
         src["garmin_source.py"]
-        src --> fix["FixtureSource<br/>recorded runs<br/>no login needed"]
-        src --> con["ConnectSource<br/>unofficial library<br/>your own account"]
-        src --> off["OfficialSource<br/>Garmin partner API<br/>not built yet"]
+        src --> fix["FixtureSource<br/>recorded runs, no login"]
+        src --> con["ConnectSource<br/>unofficial, your own account"]
+        src --> off["OfficialSource<br/>Garmin partner API<br/>not built"]
     end
 ```
 
-## The part that matters
+## The refusal is code
 
-Step 4 into step 5 is the whole idea. The safety officer can say no, and when it
-does, the reason goes back to the plan writer and the week gets rewritten.
+The safety officer is not asked for a judgement. A model reads two numbers out
+of the proposal, the weekly total and the longest single run, and that is all
+it does. Python decides:
 
-That loop is not written in code. The safety officer is told it is allowed to
-reject. The coach is told what to do when it does. The two of them work out the
-rest between themselves.
+- the week against the average of the four weeks before it
+- the longest run against the longest of the previous month
+- a harder cap on the first week back after time off
+- how bad any reported pain is
 
-## Why five agents instead of one
+A gate then fingerprints the exact week that was approved, and the publisher
+refuses anything that does not match. No wording in any prompt gets a refused
+week onto a watch.
 
-Each agent has its own memory. The load analyst reads every run and every week,
-which is a lot of numbers. The coach never sees any of it, only the two
-paragraphs the analyst writes at the end.
+## Why the agents are separate
 
-With one big agent, all those numbers would pile up in the same memory and crowd
-out everything else. Splitting the work keeps each one reading only what it
-needs.
+A planner should not grade its own plan. The safety officer never sees the plan
+writer's reasoning, only the proposal and the numbers, so it cannot be talked
+round. The plan writer has no data tools at all, so it cannot go and find a
+number that suits it.
 
-## Where the thinking stops and the maths starts
+Each agent also keeps its own memory. The load analyst reads every run and
+every week; the coach only ever sees its two-paragraph conclusion.
 
-Every number comes from ordinary Python in `tools/`. Weekly distance, the
-acute:chronic ratio, form trends, heart rate against pace. The agents read those
-numbers and explain them to you. They never work them out themselves, because
-models are bad at arithmetic and good at judgement.
+## Where the thinking stops
+
+Every number comes from plain Python in `tools/`. The models read those numbers
+and explain them. They never work them out, because models are poor at
+arithmetic and good at judgement.

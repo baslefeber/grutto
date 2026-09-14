@@ -18,7 +18,8 @@ from form import weekly_form_drift, within_run_decay
 from garmin_source import get_source
 from gate import gate
 from load import (acwr_series, chronic_km, days_since_last_run, long_run_share,
-                 longest_run_jumps, ramp_check, weekly_volume)
+                 longest_recent_run, longest_run_jumps, ramp_check,
+                 single_run_check, weekly_volume)
 
 _source = None
 TODAY = None
@@ -120,6 +121,20 @@ def check_proposed_week(proposed_week_km: float) -> str:
 
 
 @tool
+def check_single_run(proposed_longest_km: float) -> str:
+    """Test whether the biggest run in a proposed week is too big a jump.
+
+    A week can be the right total and still contain one run far past anything
+    the runner has done lately, which is the thing a weekly total cannot see
+    and the thing the running research most reliably links to injury.
+
+    Args:
+        proposed_longest_km: the longest single run in the proposed week.
+    """
+    return json.dumps(single_run_check(_runs(), proposed_longest_km, TODAY), indent=2)
+
+
+@tool
 def get_form_trend() -> str:
     """How this runner's running is changing, comparing runs held at a similar
     speed. Reports cadence, and how the foot behaves on landing.
@@ -160,11 +175,17 @@ def get_athlete_state() -> str:
 
 @tool
 def get_return_to_run_plan() -> str:
-    """What to do when something hurts. This is not a smaller training week.
+    """The sequence for coming back from something that actually stopped you.
 
-    Use this instead of a training plan whenever the runner has reported pain.
-    It is a sequence of tests: walk, then jog briefly, then slightly longer,
-    stopping at the first sign of pain, with a physiotherapist involved early.
+    Use this ONLY when the pain is severe: it hurts while walking, or it is
+    worse on the first steps of the morning, or it is getting worse, or it is
+    five out of ten or above. Check get_pain_questions first.
+
+    For a mild, settling niggle this is the wrong answer. That runner gets a
+    normal training week with a lower ceiling, not a ladder of tests.
+
+    It is a sequence: walk, then jog briefly, then slightly longer, stopping at
+    the first sign of pain, with a physiotherapist involved early.
     """
     st = athlete.state()
     return json.dumps(athlete.return_to_run_plan(st.days_off or 0, st.pain_area), indent=2)

@@ -16,7 +16,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
 
 from strands import Agent, tool
 
-from agent_tools import (check_proposed_week, get_athlete_state, get_form_trend,
+from agent_tools import (check_proposed_week, check_single_run,
+                         get_athlete_state, get_form_trend,
                          get_intensity_mix, get_journal, get_long_run_pattern,
                          get_fitness, get_pain_questions, get_race_verdict,
                          get_return_to_run_plan, get_run_history,
@@ -29,9 +30,12 @@ from pydantic import BaseModel, Field
 
 
 class ProposedWeek(BaseModel):
-    """Just the number. The model reads it, it does not judge it."""
-    total_km: float = Field(description="Total kilometres of running in the proposed week. "
-                                        "0 if the week contains no running.")
+    """Just the numbers. The model reads them, it does not judge them."""
+    total_km: float = Field(description="Total kilometres of running in the proposed "
+                                        "week. 0 if the week contains no running.")
+    longest_session_km: float = Field(default=0.0,
+        description="Kilometres in the single longest run of the proposed week. "
+                    "0 if the week contains no running.")
 
 
 def _km_from_text(text):
@@ -131,9 +135,7 @@ first". When they answer, record it with remember_pain_detail.
 Check get_fitness before any race verdict. Aerobic fitness and what the legs
 have actually covered are separate questions. A runner can be aerobically ready
 for a distance their legs have never run, and telling someone with a strong
-engine that they are unfit is simply wrong. Say which of the two is the limit. If anything hurts, or they have been off
-for a week or more, that decides everything: the answer is a return-to-run
-sequence, not a training week, and a physio should see it. Say that plainly.
+engine that they are unfit is simply wrong. Say which of the two is the limit.
 
 If they are pointing at a race, give the verdict on whether to start it and the
 reasons. Do not soften it. A runner who should not start a race is better told
@@ -172,23 +174,14 @@ shaving a kilometre off.
 
 _safety_officer = Agent(
     model=build_model(), callback_handler=None,
-    system_prompt=f"""You decide whether a proposed week is safe. You are the
-last check before anything reaches the runner.
+    system_prompt="""You read two numbers out of a proposed training week.
 
-Call check_proposed_week with the week's total. A verdict of reject means you
-reject. Caution means you reject unless everything else is clean.
-
-Also reject when:
-- the journal has an open symptom, or the runner is in pain, or they have been
-  off a week or more, and the plan contains running at all
-- the week is mostly hard running for someone who has no easy days
-- the long run is more than about a third of the week
-- it repeats a pattern that already went wrong for this runner
-
-Your answer is a verdict, not an essay. Do not re-tell their training history,
-do not comment on their form, do not give coaching advice. One or two sentences
-of reason with the numbers that drove it. That is all.""",
-    tools=[check_proposed_week, get_athlete_state, get_journal, get_workload_ratio],
+The weekly total, and the kilometres in its single longest run. That is your
+entire job. You do not decide whether the week is safe: Python does that with
+the numbers you read. Do not argue with the proposal, do not comment on it,
+just read it accurately. If the week contains no running, both numbers are 0.""",
+    tools=[check_proposed_week, check_single_run, get_athlete_state,
+           get_journal, get_workload_ratio],
 )
 
 _publisher = Agent(
@@ -292,15 +285,22 @@ def safety_officer(proposed_week: str) -> str:
     import json as _json
 
     # the model reads the total out of the text. that is all it decides.
+    longest = 0.0
     try:
         read = _safety_officer.structured_output(ProposedWeek, proposed_week)
         km = float(read.total_km)
+        longest = float(read.longest_session_km or 0.0)
     except Exception:
         km = _km_from_text(proposed_week)
 
-    # the verdict itself is code
+    # both verdicts are code. the weekly total, and the single biggest run,
+    # which is the one the weekly total cannot see.
     check = _json.loads(check_proposed_week(km))
-    approved = check["verdict"] == "approve"
+    single = _json.loads(check_single_run(longest))
+    approved = check["verdict"] == "approve" and single["verdict"] == "approve"
+    if single["verdict"] == "reject":
+        check["reason"] = single["reason"]
+        check["ceiling_km"] = min(check.get("ceiling_km", 999), single["ceiling_km"])
     state = _json.loads(get_athlete_state())
 
     # How bad it is decides this, not merely that something was mentioned.

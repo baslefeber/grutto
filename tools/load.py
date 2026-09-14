@@ -166,6 +166,48 @@ def longest_run_jumps(runs):
     return out
 
 
+def longest_recent_run(runs, today=None, days=30):
+    """The longest single run in the last month.
+
+    This is the number the running-specific research actually points at: a run
+    that goes a long way past anything you have done recently is what hurts
+    people, more reliably than a weekly total does.
+    """
+    today = _date(today) if isinstance(today, str) else (today or date.today())
+    cutoff = today - timedelta(days=days)
+    # bounded at both ends: a run that has not happened yet cannot be the
+    # thing this one is being judged against
+    recent = [r["distance_m"] / 1000.0 for r in runs
+              if cutoff <= _date(r["date"]) <= today]
+    return round(max(recent), 2) if recent else 0.0
+
+
+def single_run_check(runs, proposed_longest_km, today=None, tolerance=0.10):
+    """Is the biggest run in this week too big a jump on its own?
+
+    A week can be the right size and still contain one run that is far past
+    anything recent. The weekly total cannot see that, which is exactly how
+    this runner got hurt: a 15.9 km run when the longest of the previous month
+    was 9.6, and it was the whole week.
+    """
+    recent = longest_recent_run(runs, today)
+    if not recent or not proposed_longest_km:
+        return {"verdict": "approve", "longest_recent_km": recent, "ceiling_km": 0.0}
+
+    ceiling = round(recent * (1 + tolerance), 1)
+    over = (proposed_longest_km - recent) / recent * 100
+    return {
+        "verdict": "approve" if proposed_longest_km <= ceiling else "reject",
+        "proposed_longest_km": round(proposed_longest_km, 2),
+        "longest_recent_km": recent,
+        "further_by_pct": round(over, 0),
+        "ceiling_km": ceiling,
+        "reason": ("" if proposed_longest_km <= ceiling else
+                   f"{proposed_longest_km:.0f} km in one run is {over:.0f}% past the "
+                   f"{recent:.1f} km longest of the last month"),
+    }
+
+
 def ramp_check(runs, proposed_week_km, today=None, days_off=None):
     """Would this week be too big a step up? The safety officer's veto tool.
 

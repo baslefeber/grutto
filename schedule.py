@@ -8,10 +8,12 @@
 
     0 * * * *  cd /path/to/grutto && .venv/bin/python schedule.py check
 
-It writes what it decided into the journal, so the app has something waiting
-the next time it is opened. In a real product this is where a push
-notification goes out. Nothing is sent here, because pretending otherwise
-would be a lie.
+It writes what it decided into the journal. In a real product this is where a
+push notification goes out. Nothing is sent here, and nothing appears in the
+app yet either, because pretending otherwise would be a lie.
+
+On a first run it treats every recorded run as new, reviews the most recent
+one and marks the rest as seen.
 
 The watcher only knows about runs the data source gives it. Today that is
 Garmin. The same two moments, the start of a week and the end of a run, exist
@@ -67,6 +69,8 @@ def after_run(quiet=False):
         return None
 
     latest = max(new, key=lambda r: r["date"])
+    # mark before thinking, so two invocations overlapping cannot both review
+    watcher.mark_reviewed(new)
     _setup()
     from specialists import clear_specialists
     clear_specialists()
@@ -82,15 +86,15 @@ def after_run(quiet=False):
                         f"days from today.")
 
     said = str(build_reviewer()(
-        f"Today is {today}. They have just finished a run: {latest['name']} on "
-        f"{latest['date']}, {latest['distance_m'] / 1000:.1f} km in "
+        f"Today is {today}. Their most recent run was {latest['name']} on "
+        f"{latest['date']}, {(date.today() - date.fromisoformat(latest['date'])).days} "
+        f"days ago: {latest['distance_m'] / 1000:.1f} km in "
         f"{latest['duration_s'] / 60:.0f} minutes, average heart rate "
         f"{latest.get('avg_hr')}.{days_to_race} "
         f"Say what is worth saying about it."))
 
     journal.add_event("run_review", said.strip(), on=latest["date"],
                       run_date=latest["date"])
-    watcher.mark_reviewed(new)
     return said
 
 
@@ -117,7 +121,7 @@ def weekly(today=None, quiet=False):
 
 def main():
     what = (sys.argv[1] if len(sys.argv) > 1 else "check").lower()
-    today = sys.argv[2] if len(sys.argv) > 2 else None
+    today = None
 
     if what == "weekly":
         out = weekly(today)
